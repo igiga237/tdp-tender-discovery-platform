@@ -1,0 +1,7 @@
+{
+    "extends": ["plugin:@nrwl/nx/react", "plugin:react/recommended"],
+    "rules": {
+      "react/react-in-jsx-scope": "off"
+    }
+  }
+  
