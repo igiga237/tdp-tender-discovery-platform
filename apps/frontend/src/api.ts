@@ -10,6 +10,13 @@ export const getCompletion = async () => {
   return response.data;
 }
 
+
+export const getOpenTenderNoticesFromDB = async () => {
+  const response = await axios.get(
+    `http://localhost:3000/getOpenTenderNoticesFromDB`
+  )
+  return response.data;
+}
 export const getOpenTenderNotices = async () => {
   window.location.href = 'http://localhost:3000/getOpenTenderNotices'
   // const response = await axios.get('http://localhost:3000/getNewTenderNotices')

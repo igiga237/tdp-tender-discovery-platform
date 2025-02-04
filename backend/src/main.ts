@@ -182,6 +182,21 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
   }
 })
 
+
+app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
+  try {
+    const client = await pool.connect();
+
+    const response = await client.query('SELECT * FROM open_tender_notices');
+    await client.release();
+    res.json(response.rows);
+
+  }
+  catch (error) {
+    console.log(error);
+  }
+})
+
 app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`)
 })
