@@ -1,87 +1,49 @@
-import { Route, Routes, Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import {
-  getCompletion,
-  getEmployee,
-  getOpenTenderNotices,
-  getOpenTenderNoticesFromDB,
-} from '../api'
-import { table } from 'console'
+import NxWelcome from './nx-welcome'
 
-export interface TenderNotice {
-  'title-titre-eng': string
-  'tenderStatus-appelOffresStatut-eng': string
-  'gsinDescription-nibsDescription-eng': string
-  'unspscDescription-eng': string
-  'noticeType-avisType-eng': string
-  'procurementMethod-methodeApprovisionnement-eng': string
-  'selectionCriteria-criteresSelection-eng': string
-  'limitedTenderingReason-raisonAppelOffresLimite-eng': string
-  'tradeAgreements-accordsCommerciaux-eng': string
-  'regionsOfOpportunity-regionAppelOffres-eng': string
-  'regionsOfDelivery-regionsLivraison-eng': string
-  'contractingEntityName-nomEntitContractante-eng': string
-  'contractingEntityAddressLine-ligneAdresseEntiteContractante-eng': string
-  'contractingEntityAddressCity-entiteContractanteAdresseVille-eng': string
-  'contractingEntityAddressProvince-entiteContractanteAdresseProvince-eng': string
-  'contractingEntityAddressCountry-entiteContractanteAdressePays-eng': string
-  'endUserEntitiesName-nomEntitesUtilisateurFinal-eng': string
-  'endUserEntitiesAddress-adresseEntitesUtilisateurFinal-eng': string
-  'contactInfoAddressLine-contactInfoAdresseLigne-eng': string
-  'contactInfoCity-contacterInfoVille-eng': string
-  'contactInfoProvince-contacterInfoProvince-eng': string
-  'contactInfoCountry-contactInfoPays-eng': string
-  'noticeURL-URLavis-eng': string
-  'attachment-piecesJointes-eng': string
-  'tenderDescription-descriptionAppelOffres-eng': string
-}
+import { Route, Routes, Link } from 'react-router-dom'
 
 export function App() {
-  // const [message, setMessage] = useState('')
-  // const [EmployeData, setEmployeeData] = useState<Employee[]>([])
-
-  const [tableData, setTableData] = useState<TenderNotice[]>([])
-
-  useEffect(() => {
-    const getOpenTenderNoticesData = async function () {
-      setTableData(await getOpenTenderNoticesFromDB())
-    }
-    getOpenTenderNoticesData()
-  }, [])
-
-  const TenderTable = ({ data }: { data: any[] }) => {
-    const headers = Object.keys(data[0])
-
-    return (
-      <table>
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th key={header}>{header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, index) => (
-            <tr key={index}>
-              {headers.map((header, cellIndex) => (
-                <td key={cellIndex}>
-                  <div className="max-h-12 overflow-y-auto">{row[header]}</div>
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    )
-  }
-
   return (
-    <>
-      {tableData && tableData.length > 0 ? (
-        <TenderTable data={tableData} />
-      ) : null}
-    </>
+    <div>
+      <NxWelcome title="apps" />
+
+      {/* START: routes */}
+      {/* These routes and navigation have been generated for you */}
+      {/* Feel free to move and update them to fit your needs */}
+      <br />
+      <hr />
+      <br />
+      <div role="navigation">
+        <ul>
+          <li>
+            <Link to="/">Home</Link>
+          </li>
+          <li>
+            <Link to="/page-2">Page 2</Link>
+          </li>
+        </ul>
+      </div>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <div>
+              This is the generated root route.{' '}
+              <Link to="/page-2">Click here for page 2.</Link>
+            </div>
+          }
+        />
+        <Route
+          path="/page-2"
+          element={
+            <div>
+              <Link to="/">Click here to go back to root page.</Link>
+            </div>
+          }
+        />
+      </Routes>
+      {/* END: routes */}
+    </div>
   )
 }
 
