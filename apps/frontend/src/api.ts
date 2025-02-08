@@ -16,6 +16,12 @@ export const getOpenTenderNoticesFromDB = async () => {
   return response.data
 }
 
+export const generateLeads = async (FormData: any) => {
+  const response = await axios.post(
+    'http://localhost:3000/generateLeads', FormData
+  )
+  return response.data
+}
 export const getOpenTenderNotices = async () => {
   window.location.href = 'http://localhost:3000/getOpenTenderNotices'
   // const response = await axios.get('http://localhost:3000/getNewTenderNotices')
