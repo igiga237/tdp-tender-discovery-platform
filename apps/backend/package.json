@@ -1,0 +1,45 @@
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "backend",
+    "projectType": "application",
+    "sourceRoot": "apps/backend/src",
+    "targets": {
+      "serve": {
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "buildTarget": "backend:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "backend:build:development"
+          },
+          "production": {
+            "buildTarget": "backend:build:production"
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "csv-stringify": "^6.5.2",
+    "openai": "^4.83.0",
+    "pg": "^8.13.1",
+    "pg-copy-streams": "^6.0.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/pg": "^8.11.11",
+    "@types/pg-copy-streams": "^1.2.5"
+  }
+}
