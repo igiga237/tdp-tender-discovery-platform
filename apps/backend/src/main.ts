@@ -2,12 +2,9 @@ import * as path from 'path'
 import express from 'express'
 import OpenAI from 'openai'
 import cors from 'cors'
-import { Pool } from 'pg'
 import axios from 'axios'
-import { from as copyFrom } from 'pg-copy-streams'
 import { stringify } from 'csv-stringify'
 import csvParser from 'csv-parser'
-import { Transform } from 'stream'
 
 import Papa from 'papaparse'
 const host = process.env.HOST ?? 'localhost'
@@ -66,14 +63,6 @@ const targetColumns = [
 
 const app = express()
 
-const pool = new Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: 5432,
-})
-
 app.use(cors({ origin: '*' })) // Allow all origins
 
 app.use(express.json())
@@ -101,16 +90,6 @@ app.post('/api/completion', async (req, res) => {
     })
     console.log(completion)
     res.json(completion.choices[0].message.content) // Sends back the generated response from OpenAI.
-  } catch (error) {
-    console.log(error)
-  }
-})
-
-// Endpoint to fetch all employees from the database
-app.get('/getEmployees', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM employee')
-    res.json(rows) // Returns the employee data as JSON
   } catch (error) {
     console.log(error)
   }
@@ -146,8 +125,7 @@ app.get('/getOpenTenderNotices', async (req, res) => {
 // Endpoint to download the open tender notices CSV and import it into the database
 app.post('/getOpenTenderNoticesToDB', async (req, res) => {
   const openTenderNoticesURL =
-    process.env.OPEN_TENDER_NOTICES_URL ||
-    'https://canadabuys.canada.ca/opendata/pub/openTenderNotice-ouvertAvisAppelOffres.csv'
+    process.env.OPEN_TENDER_NOTICES_URL || ""
 
   const filterToTargetColumns = (row: any) =>
     Object.entries(row).reduce((acc, [csvKey, value]) => {
@@ -166,8 +144,7 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
   try {
     const response = await axios.get(openTenderNoticesURL, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64 x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': process.env.USER_AGENT || '',
       },
     })
 
