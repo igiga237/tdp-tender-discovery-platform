@@ -75,7 +75,7 @@ app.get('/', (req, res) => {
 })
 
 // Endpoint for generating OpenAI GPT-4 completions based on a predefined prompt.
-app.post('/api/completion', async (req, res) => {
+app.post('/generateLeads', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -83,8 +83,7 @@ app.post('/api/completion', async (req, res) => {
         { role: 'developer', content: 'You are a helpful assistant.' },
         {
           role: 'user',
-          content:
-            'say Hello. thats it. dont say anything else other than that',
+          content: req.body.prompt,
         },
       ],
     })
