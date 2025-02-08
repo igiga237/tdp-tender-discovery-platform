@@ -1,4 +1,3 @@
-
 import * as path from 'path'
 import express from 'express'
 import OpenAI from 'openai'
@@ -9,14 +8,33 @@ import { from as copyFrom } from 'pg-copy-streams'
 import { stringify } from 'csv-stringify'
 import csvParser from 'csv-parser'
 import { Transform } from 'stream'
+
+import Papa from 'papaparse'
 const host = process.env.HOST ?? 'localhost'
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_KEY || ''
+)
 const targetColumns = [
   'title-titre-eng',
+  'referenceNumber-numeroReference',
+  'amendmentNumber-numeroModification',
+  'solicitationNumber-numeroSollicitation',
+  'publicationDate-datePublication',
+  'tenderClosingDate-appelOffresDateCloture',
+  'amendmentDate-dateModification',
+  'expectedContractStartDate-dateDebutContratPrevue',
+  'expectedContractEndDate-dateFinContratPrevue',
   'tenderStatus-appelOffresStatut-eng',
+  'gsin-nibs',
   'gsinDescription-nibsDescription-eng',
+  'unspsc',
   'unspscDescription-eng',
+  'procurementCategory-categorieApprovisionnement',
   'noticeType-avisType-eng',
   'procurementMethod-methodeApprovisionnement-eng',
   'selectionCriteria-criteresSelection-eng',
@@ -27,13 +45,19 @@ const targetColumns = [
   'contractingEntityName-nomEntitContractante-eng',
   'contractingEntityAddressLine-ligneAdresseEntiteContractante-eng',
   'contractingEntityAddressCity-entiteContractanteAdresseVille-eng',
-  'contractingEntityAddressProvince-entiteContractanteAdresseProvince-eng',
-  'contractingEntityAddressCountry-entiteContractanteAdressePays-eng',
+  'contractingEntityAddressProvince-entiteContractanteAdresseProvi',
+  'contractingEntityAddressPostalCode-entiteContractanteAdresseCod',
+  'contractingEntityAddressCountry-entiteContractanteAdressePays-e',
   'endUserEntitiesName-nomEntitesUtilisateurFinal-eng',
   'endUserEntitiesAddress-adresseEntitesUtilisateurFinal-eng',
+  'contactInfoName-informationsContactNom',
+  'contactInfoEmail-informationsContactCourriel',
+  'contactInfoPhone-contactInfoTelephone',
+  'contactInfoFax',
   'contactInfoAddressLine-contactInfoAdresseLigne-eng',
   'contactInfoCity-contacterInfoVille-eng',
   'contactInfoProvince-contacterInfoProvince-eng',
+  'contactInfoPostalcode',
   'contactInfoCountry-contactInfoPays-eng',
   'noticeURL-URLavis-eng',
   'attachment-piecesJointes-eng',
@@ -125,71 +149,57 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
     process.env.OPEN_TENDER_NOTICES_URL ||
     'https://canadabuys.canada.ca/opendata/pub/openTenderNotice-ouvertAvisAppelOffres.csv'
 
+  const filterToTargetColumns = (row: any) =>
+    Object.entries(row).reduce((acc, [csvKey, value]) => {
+      // Try to find an exact match for the CSV key in targetColumns
+      let match = targetColumns.find((target) => target === csvKey)
+      if (!match) {
+        // If no exact match, check if the target column starts with the CSV key
+        match = targetColumns.find((target) => csvKey.startsWith(target))
+      }
+      if (match) {
+        acc[match] = value
+      }
+      return acc
+    }, {} as Record<string, any>)
+
   try {
     const response = await axios.get(openTenderNoticesURL, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64 x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       },
-      responseType: 'stream',
     })
-    const client = await pool.connect()
-    try {
-      // Prepare a COPY command to insert the filtered CSV data into the database
-      const copyQuery =
-        'COPY open_tender_notices FROM STDIN WITH (FORMAT csv, HEADER true)'
-      const dbStream = client.query(copyFrom(copyQuery))
 
-      const filterColumns = new Transform({
-        objectMode: true,
-        transform(row, encoding, callback) {
-          // Filter columns from the CSV to match the target database schema
-          const filtered: Record<string, any> = {}
-          targetColumns.forEach((col) => {
-            filtered[col] = row[col] || ''
-          })
-          callback(null, filtered)
-        },
-      })
+    // Parse CSV string into array of objects
+    const results = await Papa.parse(response.data, {
+      header: true,
+      skipEmptyLines: true,
+    })
 
-      const csvStringifier = stringify({
-        header: true,
-        columns: targetColumns,
-      })
+    const filteredData = results.data.map(filterToTargetColumns)
 
-      response.data
-        .pipe(csvParser())
-        .pipe(filterColumns)
-        .pipe(csvStringifier)
-        .pipe(dbStream)
-        .on('finish', () => {
-          client.release()
-          res.status(200).send('CSV data imported successfully via COPY!')
-        })
-        .on('error', (err: Error) => {
-          client.release()
-          console.error('COPY stream error:', err)
-          res.status(500).send('Error during CSV import via COPY')
-        })
-    } catch (dbError: any) {
-      client.release()
-      console.error('Database error:', dbError.message)
-      res.status(500).send('Error preparing COPY stream')
-    }
-  } catch (downloadError: any) {
-    console.error('Download error:', downloadError.message)
-    res.status(500).send('Error downloading CSV')
+    const { error } = await supabase
+      .from('open_tender_notices')
+      .insert(filteredData)
+
+    if (error) throw error
+
+    res.status(200).send('Data imported succesfully!')
+  } catch (error: any) {
+    console.log('Error importing data:', error)
+    res.status(500).send(error.message)
   }
 })
 
 // Endpoint to fetch all open tender notices from the database
 app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   try {
-    const client = await pool.connect()
-
-    const response = await client.query('SELECT * FROM open_tender_notices')
-    await client.release()
-    res.json(response.rows) // Returns the tender notices data as JSON
+    const { data, error } = await supabase
+      .from('open_tender_notices')
+      .select('*')
+    const response = data
+    res.json(response) // Returns the tender notices data as JSON
   } catch (error) {
     console.log(error)
   }
