@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/apps/frontend",
         "main": "apps/frontend/src/main.tsx",
@@ -23,7 +25,10 @@
     "lint": {
       "executor": "@nx/linter:eslint",
       "options": {
-        "lintFilePatterns": ["apps/frontend/**/*.ts", "apps/frontend/**/*.tsx"]
+        "lintFilePatterns": [
+          "apps/frontend/**/*.ts",
+          "apps/frontend/**/*.tsx"
+        ]
       }
     },
     "test": {
@@ -34,5 +39,8 @@
       }
     }
   },
-  "tags": []
+  "tags": [],
+  "dependencies": {
+    "react-router-dom": "^7.1.5"
+  }
 }
