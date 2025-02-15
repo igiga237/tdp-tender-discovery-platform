@@ -3,12 +3,7 @@ import express from 'express'
 import OpenAI from 'openai'
 import cors from 'cors'
 import axios from 'axios'
-import { stringify } from 'csv-stringify'
-import csvParser from 'csv-parser'
-
 import Papa from 'papaparse'
-const host = process.env.HOST ?? 'localhost'
-const port = process.env.PORT ? Number(process.env.PORT) : 3000
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -78,7 +73,7 @@ app.get('/', (req, res) => {
 app.post('/generateLeads', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.AI_MODEL_ID || '',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
         {
@@ -89,6 +84,33 @@ app.post('/generateLeads', async (req, res) => {
     })
     console.log(completion)
     res.json(completion.choices[0].message.content) // Sends back the generated response from OpenAI.
+  } catch (error) {
+    console.log(error)
+  }
+})
+
+// Endpoint to filter the tenders
+app.post('/filterTendersWithAI', async (req, res) => {
+  try {
+    const prompt = req.body.prompt
+    const completion = await openai.chat.completions.create({
+      model: process.env.AI_MODEL_ID || '',
+      messages: [
+        {
+          role: 'assistant',
+          content: `You are provided with an array of objects. Each object contains two keys: 'referenceNumber-numeroReference' and 'tenderDescription-descriptionAppelOffres-eng'. The goal is to check whether the content of 'tenderDescription-descriptionAppelOffres-eng' matches the given prompt, which is "${prompt}". If a good match is found, record the corresponding 'referenceNumber-numeroReference'.\n\nSteps:\n1. Iterate over each object in the array.\n2. For each object, analyze if the 'tenderDescription-descriptionAppelOffres-eng' matches with the prompt. If there's a match, add the 'referenceNumber-numeroReference' to the result.\n4. Return an array of all 'referenceNumber-numeroReference' values that match the prompt.`,
+        },
+        {
+          role: 'user',
+          content: req.body.data,
+        },
+      ],
+      response_format: {
+        type: 'json_object',
+      },
+    })
+    res.json(completion.choices[0].message.content)
+    console.log(completion)
   } catch (error) {
     console.log(error)
   }
@@ -121,10 +143,69 @@ app.get('/getOpenTenderNotices', async (req, res) => {
   }
 })
 
+app.post('/filterOpenTenderNotices', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('open_tender_notices')
+      .select(
+        'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
+      )
+
+    const response = data
+
+    try {
+      const filteredIDs: Array<String> = await axios.post(
+        'http://localhost:3000/filterTendersWithAI',
+        { prompt: 'hello', data: response }
+      )
+
+      const { data, error } = await supabase
+        .from('open_tender_notices')
+        .select('*')
+        .in('referenceNumber-numeroReference', filteredIDs)
+
+      if (error) console.log('Failed to fetch data', error)
+      else console.log('Fetched data successfully', data)
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('filtered_tender_notices')
+        .insert(data)
+
+      if (insertError) console.log('Failed to insert data', insertError)
+      else console.log('Inserted data successfully', insertedData)
+    } catch (error) {
+      console.log(error)
+    }
+
+    res.json(response)
+
+    // let filteredData = {};
+
+    // data
+  } catch (error: any) {
+    console.log(error)
+    res.status(500).send(error.message)
+  }
+})
+
+// Endpoint to fetch filtered tender notices from the database
+app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
+  try {
+    const { data, error: fetchError } = await supabase
+      .from('filtered_tender_notices')
+      .select('*')
+    if (fetchError) console.log('Failed to fetch data', fetchError)
+    else console.log('Fetched data successfully', data)
+    res.json(data)
+  } catch (error: any) {
+    console.log(error)
+    res.status(500).send(error.message)
+  }
+})
+
 // Endpoint to download the open tender notices CSV and import it into the database
 app.post('/getOpenTenderNoticesToDB', async (req, res) => {
-  const openTenderNoticesURL =
-    process.env.OPEN_TENDER_NOTICES_URL || ""
+  const openTenderNoticesURL = process.env.OPEN_TENDER_NOTICES_URL || ''
 
   const filterToTargetColumns = (row: any) =>
     Object.entries(row).reduce((acc, [csvKey, value]) => {
@@ -141,6 +222,14 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
     }, {} as Record<string, any>)
 
   try {
+    const { error: deleteError } = await supabase
+      .from('open_tender_notices')
+      .delete()
+      .neq('referenceNumber-numeroReference', 0)
+
+    if (deleteError) console.log('Failed to delete all rows', deleteError)
+    else console.log('Deleted all rows successfully')
+
     const response = await axios.get(openTenderNoticesURL, {
       headers: {
         'User-Agent': process.env.USER_AGENT || '',
@@ -155,11 +244,11 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
 
     const filteredData = results.data.map(filterToTargetColumns)
 
-    const { error } = await supabase
+    const { error: insertError } = await supabase
       .from('open_tender_notices')
       .insert(filteredData)
 
-    if (error) throw error
+    if (insertError) throw insertError
 
     res.status(200).send('Data imported succesfully!')
   } catch (error: any) {
@@ -184,7 +273,7 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
 
-const server = app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`)
+const server = app.listen(process.env.PORT, () => {
+  console.log(`Listening at http://localhost:${process.env.PORT}`)
 })
 server.on('error', console.error)

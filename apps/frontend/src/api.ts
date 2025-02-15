@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+export const numberbro = process.env.PORT;
+
 export const getEmployee = async () => {
   const response = await axios.get('http://localhost:3000/getEmployees')
   return response.data
@@ -27,3 +29,12 @@ export const getOpenTenderNotices = async () => {
   // const response = await axios.get('http://localhost:3000/getNewTenderNotices')
   // return response.data;
 }
+
+export const getFilteredTenderNoticesFromDB = async () => {
+  const response = await axios.get(
+    `http://localhost:3000/getFilteredTenderNoticesFromDB`
+  );
+  return response.data;
+}
+
+
