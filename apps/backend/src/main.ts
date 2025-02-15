@@ -4,13 +4,17 @@ import OpenAI from 'openai'
 import cors from 'cors'
 import axios from 'axios'
 import Papa from 'papaparse'
-
 import { createClient } from '@supabase/supabase-js'
 
+// Initialize Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_KEY || ''
 )
+
+// Define the target columns to filter the tender notices
+// We need to do this because in our database, the names are forcefully truncated
+// So we define the actual database column names here
 const targetColumns = [
   'title-titre-eng',
   'referenceNumber-numeroReference',
@@ -57,19 +61,22 @@ const targetColumns = [
 ]
 
 const app = express()
-
 app.use(cors({ origin: '*' })) // Allow all origins
+app.use(express.json({ limit: '1mb' })) // Limit is 1mb so can parse more tenders
 
-app.use(express.json({ limit: '1mb' }))
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Initialize OpenAI client
+const openai = new OpenAI({
+  baseURL: process.env.GROQ_BASE_URL,
+  apiKey: process.env.GROQ_API_KEY,
+})
 
 // Root endpoint, returns a welcome message
 app.get('/', (req, res) => {
   res.send({ message: 'Welcome to TDP BACKEND.' })
 })
 
-// Endpoint for generating OpenAI GPT-4 completions based on a predefined prompt.
+// Endpoint for generating AI completions based on a predefined prompt.
 app.post('/generateLeads', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
@@ -93,40 +100,31 @@ app.post('/generateLeads', async (req, res) => {
 app.post('/filterTendersWithAI', async (req, res) => {
   try {
     const prompt = req.body.prompt
-    // const content = req.body.data.map((element: Record<string, any>) => {
-    //   return {
-    //     role: 'user',
-    //     content: [
-    //       {
-    //         type: 'text',
-    //         text: JSON.stringify(element), // Send JSON as a single text message
-    //       },
-    //     ],
-    //   }
-    // })
     const completion = await openai.chat.completions.create({
-      model: process.env.AI_MODEL_ID || '',
+      model: process.env.GROQ_AI_MODEL_ID || '',
       messages: [
         {
           role: 'assistant',
-          content: `You are an AI that helps users filter a databse of government tenders. You are provided with an array of tender objects. Each object contains two keys: 'referenceNumber-numeroReference', which is the reference ID, and 'tenderDescription-descriptionAppelOffres-eng', which is the description of the tender.
+          content: `You are an AI that helps users filter a database of government tenders. 
+You MUST return a valid JSON response matching this exact format:
+{
+  "matches": ["REF1", "REF2"]
+}
+
+You are provided with tender objects containing:
+- 'referenceNumber-numeroReference' (the ID)
+- 'tenderDescription-descriptionAppelOffres-eng' (the description)
 
 Your task:
 1. Read each tender description
-2. The user is asking this: "${prompt}"
-3. If the description of the tender relates to what the user wants, include its reference ID
-4. Return a JSON array object with matched reference numbers
-
-Example response format if matches found:
-{
-  "matches": ["REF123", "REF456"]
-}
+2. Find matches for this request: "${prompt}"
+3. Return ONLY valid JSON with matching reference IDs
 
 The tender data to analyze is: `,
         },
         {
           role: 'user',
-          content: JSON.stringify(req.body.data),
+          content: `json ${JSON.stringify(req.body.data)}`,
         },
       ],
       response_format: {
@@ -158,14 +156,21 @@ app.get('/getOpenTenderNotices', async (req, res) => {
     ) // Sets the response as a downloadable CSV file
     response.data.pipe(res) // Streams the downloaded CSV data to the response
     console.log('Successfully downloaded newest tender notice!')
+    return;
   } catch (error) {
     console.log(
       'Error downloading the new tender notices, please see this error:',
       error
     )
+    return
   }
 })
 
+
+
+// Endpoint that filters the open tender notices based on a prompt given in the body
+// then saves onto database table filtered_open_tender_notices
+// Before it does save, it wipes the previous data on the table
 app.post('/filterOpenTenderNotices', async (req, res) => {
   try {
     const { error: deleteError } = await supabase
@@ -182,7 +187,11 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
-      .limit(100)
+      .limit(4)
+    if (error) {
+      console.log('Failed to fetch data', error)
+      return res.status(500).json({ error: error.message })
+    }
 
     try {
       const filteredIDs = (
@@ -219,16 +228,13 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
       console.log('Failed to fetch data', fetchFilteredDataError)
     else console.log('Fetched data successfully')
 
-    const filteredData = fetchFilteredData
-
     res.json(fetchFilteredData)
 
-    // let filteredData = {};
-
-    // data
+    return;
   } catch (error: any) {
     console.log(error)
     res.status(500).send(error.message)
+    return;
   }
 })
 
@@ -246,6 +252,8 @@ app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
     res.status(500).send(error.message)
   }
 })
+
+
 
 // Endpoint to download the open tender notices CSV and import it into the database
 app.post('/getOpenTenderNoticesToDB', async (req, res) => {
@@ -307,10 +315,18 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
     const { data, error } = await supabase
       .from('open_tender_notices')
       .select('*')
+    
+    if (error) {
+      console.log('Failed to fetch data', error)
+      return res.status(500).json({ error: error.message })
+    }
+
     const response = data
     res.json(response) // Returns the tender notices data as JSON
+    return;
   } catch (error) {
     console.log(error)
+    return;
   }
 })
 

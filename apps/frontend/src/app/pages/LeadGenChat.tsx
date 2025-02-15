@@ -1,4 +1,3 @@
-import { filterOpenTenderNotices } from '../../api'
 import { useState } from 'react'
 import { generateLeads } from '../../api'
 
