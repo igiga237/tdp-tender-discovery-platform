@@ -60,7 +60,7 @@ const app = express()
 
 app.use(cors({ origin: '*' })) // Allow all origins
 
-app.use(express.json())
+app.use(express.json({ limit: '1mb' }))
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -133,7 +133,7 @@ The tender data to analyze is: `,
         type: 'json_object',
       },
     })
-    res.json(completion.choices[0].message.content)
+    res.json(JSON.parse(completion.choices[0].message.content || '{}'))
   } catch (error) {
     console.log(error)
   }
@@ -168,24 +168,29 @@ app.get('/getOpenTenderNotices', async (req, res) => {
 
 app.post('/filterOpenTenderNotices', async (req, res) => {
   try {
+    const { error: deleteError } = await supabase
+      .from('filtered_open_tender_notices')
+      .delete()
+      .neq('referenceNumber-numeroReference', 0)
+
+    if (deleteError) console.log('Failed to delete all rows', deleteError)
+
     const prompt = req.body.prompt
+
     const { data, error } = await supabase
       .from('open_tender_notices')
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
-      .limit(10)
-
-    const response = data
+      .limit(100)
 
     try {
-      const filteredIDs: Array<String> = (
+      const filteredIDs = (
         await axios.post('http://localhost:3000/filterTendersWithAI', {
           prompt: prompt,
-          data: response,
+          data: data,
         })
       ).data.matches
-
       const { data: matchedData, error: matchError } = await supabase
         .from('open_tender_notices')
         .select('*')
@@ -197,9 +202,9 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
         return res.status(500).json({ error: matchError.message })
       }
 
-      const { data: insertedData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('filtered_open_tender_notices')
-        .insert(data)
+        .insert(matchedData)
 
       if (insertError) console.log('Failed to insert data', insertError)
       else console.log('Inserted data successfully')
