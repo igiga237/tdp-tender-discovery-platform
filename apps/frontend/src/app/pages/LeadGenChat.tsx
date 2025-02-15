@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { generateLeads } from '../../api'
+import { filterOpenTenderNotices } from '../../api'
+import { FilteredTenderData } from './FilteredTenderData'
 const LeadGenChat = () => {
     const [formData, setFormData] = useState({ prompt: '' })
-    const [response, setResponse] = useState('')
+    const [response, setResponse] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -11,7 +12,8 @@ const LeadGenChat = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     console.log('Form submitted:', formData)
-    setResponse(await generateLeads(formData))
+    await filterOpenTenderNotices(formData.prompt);
+    setResponse(!response)
   }
 
 
@@ -28,7 +30,7 @@ const LeadGenChat = () => {
           />
           <button type="submit">Generate Leads</button>
           </form>
-          {response && <div>{response}</div>}
+          {response && <FilteredTenderData />}
    </>
   )
 }

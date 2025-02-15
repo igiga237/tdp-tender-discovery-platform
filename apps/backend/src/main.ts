@@ -93,16 +93,40 @@ app.post('/generateLeads', async (req, res) => {
 app.post('/filterTendersWithAI', async (req, res) => {
   try {
     const prompt = req.body.prompt
+    // const content = req.body.data.map((element: Record<string, any>) => {
+    //   return {
+    //     role: 'user',
+    //     content: [
+    //       {
+    //         type: 'text',
+    //         text: JSON.stringify(element), // Send JSON as a single text message
+    //       },
+    //     ],
+    //   }
+    // })
     const completion = await openai.chat.completions.create({
       model: process.env.AI_MODEL_ID || '',
       messages: [
         {
           role: 'assistant',
-          content: `You are provided with an array of objects. Each object contains two keys: 'referenceNumber-numeroReference' and 'tenderDescription-descriptionAppelOffres-eng'. The goal is to check whether the content of 'tenderDescription-descriptionAppelOffres-eng' matches the given prompt, which is "${prompt}". If a good match is found, record the corresponding 'referenceNumber-numeroReference'.\n\nSteps:\n1. Iterate over each object in the array.\n2. For each object, analyze if the 'tenderDescription-descriptionAppelOffres-eng' matches with the prompt. If there's a match, add the 'referenceNumber-numeroReference' to the result.\n4. Return an array of all 'referenceNumber-numeroReference' values that match the prompt.`,
+          content: `You are an AI that helps users filter a databse of government tenders. You are provided with an array of tender objects. Each object contains two keys: 'referenceNumber-numeroReference', which is the reference ID, and 'tenderDescription-descriptionAppelOffres-eng', which is the description of the tender.
+
+Your task:
+1. Read each tender description
+2. The user is asking this: "${prompt}"
+3. If the description of the tender relates to what the user wants, include its reference ID
+4. Return a JSON array object with matched reference numbers
+
+Example response format if matches found:
+{
+  "matches": ["REF123", "REF456"]
+}
+
+The tender data to analyze is: `,
         },
         {
           role: 'user',
-          content: req.body.data,
+          content: JSON.stringify(req.body.data),
         },
       ],
       response_format: {
@@ -110,7 +134,6 @@ app.post('/filterTendersWithAI', async (req, res) => {
       },
     })
     res.json(completion.choices[0].message.content)
-    console.log(completion)
   } catch (error) {
     console.log(error)
   }
@@ -145,39 +168,55 @@ app.get('/getOpenTenderNotices', async (req, res) => {
 
 app.post('/filterOpenTenderNotices', async (req, res) => {
   try {
+    const prompt = req.body.prompt
     const { data, error } = await supabase
       .from('open_tender_notices')
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
+      .limit(10)
 
     const response = data
 
     try {
-      const filteredIDs: Array<String> = await axios.post(
-        'http://localhost:3000/filterTendersWithAI',
-        { prompt: 'hello', data: response }
-      )
+      const filteredIDs: Array<String> = (
+        await axios.post('http://localhost:3000/filterTendersWithAI', {
+          prompt: prompt,
+          data: response,
+        })
+      ).data.matches
 
-      const { data, error } = await supabase
+      const { data: matchedData, error: matchError } = await supabase
         .from('open_tender_notices')
         .select('*')
         .in('referenceNumber-numeroReference', filteredIDs)
 
-      if (error) console.log('Failed to fetch data', error)
-      else console.log('Fetched data successfully', data)
+      // Changed to add proper error handling and data validation
+      if (matchError) {
+        console.log('Failed to fetch matched data:', matchError)
+        return res.status(500).json({ error: matchError.message })
+      }
 
       const { data: insertedData, error: insertError } = await supabase
-        .from('filtered_tender_notices')
+        .from('filtered_open_tender_notices')
         .insert(data)
 
       if (insertError) console.log('Failed to insert data', insertError)
-      else console.log('Inserted data successfully', insertedData)
+      else console.log('Inserted data successfully')
     } catch (error) {
       console.log(error)
     }
 
-    res.json(response)
+    const { data: fetchFilteredData, error: fetchFilteredDataError } =
+      await supabase.from('filtered_open_tender_notices').select('*')
+
+    if (fetchFilteredDataError)
+      console.log('Failed to fetch data', fetchFilteredDataError)
+    else console.log('Fetched data successfully')
+
+    const filteredData = fetchFilteredData
+
+    res.json(fetchFilteredData)
 
     // let filteredData = {};
 
@@ -192,7 +231,7 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
 app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
   try {
     const { data, error: fetchError } = await supabase
-      .from('filtered_tender_notices')
+      .from('filtered_open_tender_notices')
       .select('*')
     if (fetchError) console.log('Failed to fetch data', fetchError)
     else console.log('Fetched data successfully', data)

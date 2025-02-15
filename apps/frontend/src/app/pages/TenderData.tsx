@@ -5,7 +5,6 @@ import {
   getOpenTenderNotices,
   getOpenTenderNoticesFromDB,
 } from '../../api'
-import { table } from 'console'
 
 export interface TenderNotice {
   'title-titre-eng': string
