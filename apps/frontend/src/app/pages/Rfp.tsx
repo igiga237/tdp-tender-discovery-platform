@@ -1,22 +1,65 @@
-
-import { get_sentences_rfp } from '../../api'
 import { useEffect, useState } from 'react'
+import { upload_pdf } from '../../api'
 const Rfp = () => {
-    const [data, setData] = useState(null)
+  const [file, setFile] = useState<File | null>(null)
 
-    useEffect(() => {
-        const getData = async () => {
-            setData(await get_sentences_rfp())
-        }
-        getData()
-    }, [])
+  interface PdfData {
+    entities: string[]
+    sentences_with_dates: string[]
+    sentences_with_money: string[]
+  }
+
+  const [data, setData] = useState<PdfData | null>(null)
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0])
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('pdf', file)
+
+    try {
+      setData(await upload_pdf(formData))
+      console.log('Succesfully uploaded pdf')
+    } catch (e) {
+      console.error(e)
+    }
+  }
   return (
+    <>
       <div>
-          {data ? data.map((sentence, index) => {
-              return <div className="m-4 font-bold" key={index}>{sentence}</div>
-          }): 'No data'}
-      
-    </div>
+        <form onSubmit={handleSubmit}>
+          <h1>Upload PDF</h1>
+          <input
+            type="file"
+            name="pdf"
+            accept="application/pdf"
+            required
+            onChange={handleChange}
+          />
+          <input
+            type="submit"
+            className="bg-black text-white p-12 hover:scale-110"
+          />
+        </form>
+
+        {data
+          ? data.sentences_with_dates.map((sentence: string, index: number) => {
+              return (
+                <div className="m-4 font-bold" key={index}>
+                  {sentence}
+                </div>
+              )
+            })
+          : 'No data'}
+      </div>
+    </>
   )
 }
 

@@ -1,5 +1,5 @@
 import axios from 'axios'
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3000'
 
 export const getEmployee = async () => {
   const response = await axios.get('${API_BASE_URL}/getEmployees')
@@ -11,16 +11,12 @@ export const getCompletion = async () => {
 }
 
 export const getOpenTenderNoticesFromDB = async () => {
-  const response = await axios.get(
-    `${API_BASE_URL}/getOpenTenderNoticesFromDB`
-  )
+  const response = await axios.get(`${API_BASE_URL}/getOpenTenderNoticesFromDB`)
   return response.data
 }
 
 export const generateLeads = async (FormData: any) => {
-  const response = await axios.post(
-    `${API_BASE_URL}/generateLeads`, FormData
-  )
+  const response = await axios.post(`${API_BASE_URL}/generateLeads`, FormData)
   return response.data
 }
 export const getOpenTenderNotices = async () => {
@@ -32,21 +28,22 @@ export const getOpenTenderNotices = async () => {
 export const getFilteredTenderNoticesFromDB = async () => {
   const response = await axios.get(
     `${API_BASE_URL}/getFilteredTenderNoticesFromDB`
-  );
-  return response.data;
-}
-
-export const filterOpenTenderNotices = async (prompt:String) => {
-  const response = await axios.post(`${API_BASE_URL}/filterOpenTenderNotices`,
-    {prompt: prompt}
   )
-  return response.data;
+  return response.data
 }
 
+export const filterOpenTenderNotices = async (prompt: String) => {
+  const response = await axios.post(`${API_BASE_URL}/filterOpenTenderNotices`, {
+    prompt: prompt,
+  })
+  return response.data
+}
 
-export const get_sentences_rfp = async () => {
-  const response = await axios.get(`http://localhost:4500/`)
-  console.log(response.data)
+export const upload_pdf = async (formData: FormData) => {
+  const response = await axios.post(
+    `http://localhost:4500/analyze_pdf`,
+    formData
+  )
   return response.data
 }
 
@@ -77,4 +74,3 @@ export interface TenderNoticeInterface {
   'attachment-piecesJointes-eng': string
   'tenderDescription-descriptionAppelOffres-eng': string
 }
-
