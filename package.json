@@ -34,6 +34,7 @@
     "@nx/react": "^20.3.3",
     "@nx/web": "20.3.3",
     "@nx/webpack": "^20.3.3",
+    "@nxlv/python": "^20.5.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@svgr/webpack": "^8.0.1",
     "@swc-node/register": "~1.9.1",
