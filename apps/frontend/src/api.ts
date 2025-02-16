@@ -44,6 +44,11 @@ export const filterOpenTenderNotices = async (prompt:String) => {
 }
 
 
+export const get_sentences_rfp = async () => {
+  const response = await axios.get(`http://localhost:4500/`)
+  console.log(response.data)
+  return response.data
+}
 
 export interface TenderNoticeInterface {
   'title-titre-eng': string
