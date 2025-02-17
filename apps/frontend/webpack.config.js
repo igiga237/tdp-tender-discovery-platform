@@ -6,7 +6,10 @@ module.exports = {
   mode: process.env.NODE_ENV || 'development', // Define mode based on environment
   output: {
     path: join(__dirname, '../../dist/apps/frontend'), // Updated output path for clarity
-    filename: process.env.NODE_ENV === 'production' ? '[name].[contenthash].js' : '[name].js',
+    filename:
+      process.env.NODE_ENV === 'production'
+        ? '[name].[contenthash].js'
+        : '[name].js',
     publicPath: '/', // Ensures assets are served correctly
     clean: true, // Automatically clean the output directory before builds
   },
@@ -44,4 +47,4 @@ module.exports = {
       chunks: 'all', // Optimize code splitting for shared modules
     },
   },
-};
+}

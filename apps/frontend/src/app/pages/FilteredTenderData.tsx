@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react'
 import {
-  getOpenTenderNoticesFromDB,
-  TenderNoticeInterface
+  getFilteredTenderNoticesFromDB, TenderNoticeInterface
 } from '../../api'
 
-
-
-export function App() {
+export function FilteredTenderData() {
+  // const [message, setMessage] = useState('')
+  // const [EmployeData, setEmployeeData] = useState<Employee[]>([])
 
   const [tableData, setTableData] = useState<TenderNoticeInterface[]>([])
 
   useEffect(() => {
     const getOpenTenderNoticesData = async function () {
-      setTableData(await getOpenTenderNoticesFromDB())
+      setTableData(await getFilteredTenderNoticesFromDB())
     }
     getOpenTenderNoticesData()
   }, [])
@@ -53,4 +52,4 @@ export function App() {
   )
 }
 
-export default App
+export default FilteredTenderData
