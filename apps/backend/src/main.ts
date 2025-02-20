@@ -70,69 +70,80 @@ const openai = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
 })
 
-// Root endpoint, returns a welcome message
+/**
+ * Root endpoint
+ * @route GET /
+ * @returns {Object} Welcome message
+ */
 app.get('/', (req, res) => {
   res.send({ message: 'Welcome to TDP BACKEND.' })
 })
 
-// Endpoint for generating AI completions based on a predefined prompt.
+/**
+ * Generates AI completions based on a predefined prompt
+ * @route POST /generateLeads
+ * @param {string} req.body.prompt - The prompt to generate completion for
+ * @returns {string} AI generated completion
+ */
 app.post('/generateLeads', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
       model: process.env.AI_MODEL_ID || '',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
-        {
-          role: 'user',
-          content: req.body.prompt,
-        },
+        { role: 'user', content: req.body.prompt },
       ],
     })
-    console.log(completion)
-    res.json(completion.choices[0].message.content) // Sends back the generated response from OpenAI.
+    res.json(completion.choices[0].message.content)
   } catch (error) {
-    console.log(error)
+    console.error('Error generating leads:', error)
+    res.status(500).json({ error: 'Failed to generate leads' })
   }
 })
 
-// Endpoint to filter the tenders
+/**
+ * Analyzes RFP data using AI and stores the analysis
+ * @route POST /getRfpAnalysis
+ * @param {Object} req.body - The RFP data to analyze
+ * @returns {string} AI generated analysis
+ */
 app.post('/getRfpAnalysis', async (req, res) => {
-  console.log(req.body)
   try {
     const completion = await openai.chat.completions.create({
       model: process.env.GEMINI_AI_MODEL_ID || '',
       messages: [
-        {
-          role: 'assistant',
-          content: `You are an AI that summarizes data`,
-        },
-        {
-          role: 'user',
-          content: `${JSON.stringify(req.body)}`,
-        },
+        { role: 'assistant', content: 'You are an AI that summarizes data' },
+        { role: 'user', content: JSON.stringify(req.body) },
       ],
     })
+
     const response = completion.choices[0].message.content
+    const { error } = await supabase
+      .from('rfp_analysis')
+      .insert({ data: response })
 
-    console.log(response)
-
-
-    const { error } = await supabase.from('rfp_analysis').insert({ data: response })
     if (error) {
-      console.log(error)
-      return res.status(500).json({error})
+      console.error('Error storing RFP analysis:', error)
+      return res.status(500).json({ error })
     }
-    res.send(completion.choices[0].message.content || '{}')
+
+    res.json(response || '{}')
   } catch (error) {
-    console.log(error)
+    console.error('Error analyzing RFP:', error)
+    res.status(500).json({ error: 'Failed to analyze RFP' })
   }
-  
 })
 
-// Endpoint to filter the tenders
+/**
+ * Filters tenders using AI based on a prompt
+ * @route POST /filterTendersWithAI
+ * @param {string} req.body.prompt - The filtering criteria
+ * @param {Object[]} req.body.data - The tender data to filter
+ * @returns {Object} JSON object containing matching reference IDs
+ */
 app.post('/filterTendersWithAI', async (req, res) => {
   try {
-    const prompt = req.body.prompt
+    const { prompt, data } = req.body
     const completion = await openai.chat.completions.create({
       model: process.env.GEMINI_AI_MODEL_ID || '',
       messages: [
@@ -155,26 +166,25 @@ Your task:
 
 The tender data to analyze is: `,
         },
-        {
-          role: 'user',
-          content: `${JSON.stringify(req.body.data)}`,
-        },
+        { role: 'user', content: JSON.stringify(data) },
       ],
-      response_format: {
-        type: 'json_object',
-      },
+      response_format: { type: 'json_object' },
     })
-    res.send(completion.choices[0].message.content || '{}')
+    res.json(completion.choices[0].message.content || '{}')
   } catch (error) {
-    console.log(error)
+    console.error('Error filtering tenders:', error)
+    res.status(500).json({ error: 'Failed to filter tenders' })
   }
 })
 
-// Endpoint to fetch open tender notices from an external URL and return as a CSV file
+/**
+ * Downloads open tender notices as CSV
+ * @route GET /getOpenTenderNotices
+ * @returns {File} CSV file containing tender notices
+ */
 app.get('/getOpenTenderNotices', async (req, res) => {
-  const openTenderNoticesURL = process.env.OPEN_TENDER_NOTICES_URL || ''
-
   try {
+    const openTenderNoticesURL = process.env.OPEN_TENDER_NOTICES_URL || ''
     const response = await axios.get(openTenderNoticesURL, {
       headers: {
         'User-Agent':
@@ -186,105 +196,118 @@ app.get('/getOpenTenderNotices', async (req, res) => {
     res.setHeader(
       'Content-Disposition',
       'attachment; filename=newTenderNotice.csv'
-    ) // Sets the response as a downloadable CSV file
-    response.data.pipe(res) // Streams the downloaded CSV data to the response
-    console.log('Successfully downloaded newest tender notice!')
-    return
-  } catch (error) {
-    console.log(
-      'Error downloading the new tender notices, please see this error:',
-      error
     )
-    return
+    response.data.pipe(res)
+    console.log('Successfully downloaded newest tender notice!')
+  } catch (error) {
+    console.error('Error downloading tender notices:', error)
+    res.status(500).json({ error: 'Failed to download tender notices' })
   }
 })
 
-// Endpoint that filters the open tender notices based on a prompt given in the body
-// then saves onto database table filtered_open_tender_notices
-// Before it does save, it wipes the previous data on the table
+/**
+ * Filters open tender notices and saves to database
+ * @route POST /filterOpenTenderNotices
+ * @param {string} req.body.prompt - The filtering criteria
+ * @returns {Object[]} Filtered tender notices
+ */
 app.post('/filterOpenTenderNotices', async (req, res) => {
   try {
+    // Clear existing filtered notices
     const { error: deleteError } = await supabase
       .from('filtered_open_tender_notices')
       .delete()
       .neq('referenceNumber-numeroReference', 0)
 
-    if (deleteError) console.log('Failed to delete all rows', deleteError)
+    if (deleteError) {
+      console.error('Failed to delete existing filtered notices:', deleteError)
+    }
 
-    const prompt = req.body.prompt
-
+    // Fetch tender notices
     const { data, error } = await supabase
       .from('open_tender_notices')
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
-    // .limit(50) // this limits how many tenders to look at
+
     if (error) {
-      console.log('Failed to fetch data', error)
-      return res.status(500).json({ error: error.message })
+      throw new Error(`Failed to fetch tender notices: ${error.message}`)
     }
 
-    try {
-      const filteredIDs = (
-        await axios.post('http://localhost:3000/filterTendersWithAI', {
-          prompt: prompt,
-          data: data,
-        })
-      ).data.matches
-      const { data: matchedData, error: matchError } = await supabase
-        .from('open_tender_notices')
-        .select('*')
-        .in('referenceNumber-numeroReference', filteredIDs)
-
-      // Changed to add proper error handling and data validation
-      if (matchError) {
-        console.log('Failed to fetch matched data:', matchError)
-        return res.status(500).json({ error: matchError.message })
+    // Filter tenders using AI
+    const response = await axios.post(
+      'http://localhost:3000/filterTendersWithAI',
+      {
+        prompt: req.body.prompt,
+        data: data,
       }
+    )
 
-      const { error: insertError } = await supabase
-        .from('filtered_open_tender_notices')
-        .insert(matchedData)
+    const filteredIDs = response.data.matches
 
-      if (insertError) console.log('Failed to insert data', insertError)
-      else console.log('Inserted data successfully')
-    } catch (error) {
-      console.log(error)
+    // Get full data for matched tenders
+    const { data: matchedData, error: matchError } = await supabase
+      .from('open_tender_notices')
+      .select('*')
+      .in('referenceNumber-numeroReference', filteredIDs)
+
+    if (matchError) {
+      throw new Error(`Failed to fetch matched data: ${matchError.message}`)
     }
 
+    // Insert filtered results
+    const { error: insertError } = await supabase
+      .from('filtered_open_tender_notices')
+      .insert(matchedData)
+
+    if (insertError) {
+      throw new Error(`Failed to insert filtered data: ${insertError.message}`)
+    }
+
+    // Return filtered results
     const { data: fetchFilteredData, error: fetchFilteredDataError } =
       await supabase.from('filtered_open_tender_notices').select('*')
 
-    if (fetchFilteredDataError)
-      console.log('Failed to fetch data', fetchFilteredDataError)
-    else console.log('Fetched data successfully')
+    if (fetchFilteredDataError) {
+      throw new Error(
+        `Failed to fetch filtered data: ${fetchFilteredDataError.message}`
+      )
+    }
 
     res.json(fetchFilteredData)
-
-    return
   } catch (error: any) {
-    console.log(error)
-    res.status(500).send(error.message)
-    return
+    console.error('Error filtering open tender notices:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 
-// Endpoint to fetch filtered tender notices from the database
+/**
+ * Fetches filtered tender notices from the database
+ * @route GET /getFilteredTenderNoticesFromDB
+ * @returns {Object[]} Array of filtered tender notices
+ */
 app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
   try {
     const { data, error: fetchError } = await supabase
       .from('filtered_open_tender_notices')
       .select('*')
-    if (fetchError) console.log('Failed to fetch data', fetchError)
-    else console.log('Fetched data successfully', data)
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch filtered notices: ${fetchError.message}`)
+    }
+
     res.json(data)
   } catch (error: any) {
-    console.log(error)
-    res.status(500).send(error.message)
+    console.error('Error fetching filtered notices:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 
-// Endpoint to download the open tender notices CSV and import it into the database
+/**
+ * Downloads and imports tender notices CSV into database
+ * @route POST /getOpenTenderNoticesToDB
+ * @returns {string} Success message
+ */
 app.post('/getOpenTenderNoticesToDB', async (req, res) => {
   const openTenderNoticesURL = process.env.OPEN_TENDER_NOTICES_URL || ''
 
@@ -303,21 +326,26 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
     }, {} as Record<string, any>)
 
   try {
+    // Clear existing notices
     const { error: deleteError } = await supabase
       .from('open_tender_notices')
       .delete()
       .neq('referenceNumber-numeroReference', 0)
 
-    if (deleteError) console.log('Failed to delete all rows', deleteError)
-    else console.log('Deleted all rows successfully')
+    if (deleteError) {
+      throw new Error(
+        `Failed to clear existing notices: ${deleteError.message}`
+      )
+    }
 
+    // Download CSV
     const response = await axios.get(openTenderNoticesURL, {
       headers: {
         'User-Agent': process.env.USER_AGENT || '',
       },
     })
 
-    // Parse CSV string into array of objects
+    // Parse CSV and filter columns
     const results = await Papa.parse(response.data, {
       header: true,
       skipEmptyLines: true,
@@ -325,20 +353,27 @@ app.post('/getOpenTenderNoticesToDB', async (req, res) => {
 
     const filteredData = results.data.map(filterToTargetColumns)
 
+    // Insert filtered data
     const { error: insertError } = await supabase
       .from('open_tender_notices')
       .insert(filteredData)
 
-    if (insertError) throw insertError
+    if (insertError) {
+      throw new Error(`Failed to insert notices: ${insertError.message}`)
+    }
 
-    res.status(200).send('Data imported succesfully!')
+    res.json({ message: 'Data imported successfully!' })
   } catch (error: any) {
-    console.log('Error importing data:', error)
-    res.status(500).send(error.message)
+    console.error('Error importing tender notices:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 
-// Endpoint to fetch all open tender notices from the database
+/**
+ * Fetches all open tender notices from database
+ * @route GET /getOpenTenderNoticesFromDB
+ * @returns {Object[]} Array of all tender notices
+ */
 app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -346,16 +381,13 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
       .select('*')
 
     if (error) {
-      console.log('Failed to fetch data', error)
-      return res.status(500).json({ error: error.message })
+      throw new Error(`Failed to fetch tender notices: ${error.message}`)
     }
 
-    const response = data
-    res.json(response) // Returns the tender notices data as JSON
-    return
-  } catch (error) {
-    console.log(error)
-    return
+    res.json(data)
+  } catch (error: any) {
+    console.error('Error fetching tender notices:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 
