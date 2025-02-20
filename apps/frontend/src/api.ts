@@ -1,10 +1,7 @@
 import axios from 'axios'
 const API_BASE_URL = 'http://localhost:3000'
 
-export const getEmployee = async () => {
-  const response = await axios.get('${API_BASE_URL}/getEmployees')
-  return response.data
-}
+
 export const getCompletion = async () => {
   const response = await axios.post(`${API_BASE_URL}/api/completion`)
   return response.data
@@ -39,11 +36,23 @@ export const filterOpenTenderNotices = async (prompt: String) => {
   return response.data
 }
 
-export const upload_pdf = async (formData: FormData) => {
+export const getOpenTenderNoticesToDB = async () => {
+  const response = await axios.post(`${API_BASE_URL}/getOpenTenderNoticesToDB`)
+  return response.data
+}
+export const analyze_pdf = async (formData: FormData) => {
   const response = await axios.post(
     `http://localhost:4500/analyze_pdf`,
     formData
   )
+  return response.data
+}
+
+export const getRfpAnalysis = async (rfp_data: any) => {
+  const response = await axios.post(
+    `${API_BASE_URL}/getRfpAnalysis`,
+    rfp_data)
+  
   return response.data
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { upload_pdf } from '../../api'
+import { analyze_pdf, getRfpAnalysis } from '../../api'
 const Rfp = () => {
   const [file, setFile] = useState<File | null>(null)
 
@@ -9,7 +9,7 @@ const Rfp = () => {
     sentences_with_money: string[]
   }
 
-  const [data, setData] = useState<PdfData | null>(null)
+  const [data, setData] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -25,7 +25,9 @@ const Rfp = () => {
     formData.append('pdf', file)
 
     try {
-      setData(await upload_pdf(formData))
+      const raw_response = await analyze_pdf(formData)
+      console.log(raw_response)
+      setData(await getRfpAnalysis(raw_response))
       console.log('Succesfully uploaded pdf')
     } catch (e) {
       console.error(e)
@@ -48,8 +50,8 @@ const Rfp = () => {
             className="bg-black text-white p-12 hover:scale-110"
           />
         </form>
-
-        {data
+{data}
+        {/* {data
           ? data.sentences_with_dates.map((sentence: string, index: number) => {
               return (
                 <div className="m-4 font-bold" key={index}>
@@ -57,7 +59,7 @@ const Rfp = () => {
                 </div>
               )
             })
-          : 'No data'}
+          : 'No data'} */}
       </div>
     </>
   )

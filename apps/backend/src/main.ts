@@ -62,13 +62,12 @@ const targetColumns = [
 
 const app = express()
 app.use(cors({ origin: '*' })) // Allow all origins
-app.use(express.json({ limit: '1mb' })) // Limit is 1mb so can parse more tenders
-
+app.use(express.json({ limit: '10mb' })) // Limit is 1mb so can parse more tenders
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  baseURL: process.env.GROQ_BASE_URL,
-  apiKey: process.env.GROQ_API_KEY,
+  baseURL: process.env.GEMINI_BASE_URL,
+  apiKey: process.env.GEMINI_API_KEY,
 })
 
 // Root endpoint, returns a welcome message
@@ -97,11 +96,45 @@ app.post('/generateLeads', async (req, res) => {
 })
 
 // Endpoint to filter the tenders
+app.post('/getRfpAnalysis', async (req, res) => {
+  console.log(req.body)
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.GEMINI_AI_MODEL_ID || '',
+      messages: [
+        {
+          role: 'assistant',
+          content: `You are an AI that summarizes data`,
+        },
+        {
+          role: 'user',
+          content: `${JSON.stringify(req.body)}`,
+        },
+      ],
+    })
+    const response = completion.choices[0].message.content
+
+    console.log(response)
+
+
+    const { error } = await supabase.from('rfp_analysis').insert({ data: response })
+    if (error) {
+      console.log(error)
+      return res.status(500).json({error})
+    }
+    res.send(completion.choices[0].message.content || '{}')
+  } catch (error) {
+    console.log(error)
+  }
+  
+})
+
+// Endpoint to filter the tenders
 app.post('/filterTendersWithAI', async (req, res) => {
   try {
     const prompt = req.body.prompt
     const completion = await openai.chat.completions.create({
-      model: process.env.GROQ_AI_MODEL_ID || '',
+      model: process.env.GEMINI_AI_MODEL_ID || '',
       messages: [
         {
           role: 'assistant',
@@ -124,14 +157,14 @@ The tender data to analyze is: `,
         },
         {
           role: 'user',
-          content: `json ${JSON.stringify(req.body.data)}`,
+          content: `${JSON.stringify(req.body.data)}`,
         },
       ],
       response_format: {
         type: 'json_object',
       },
     })
-    res.json(JSON.parse(completion.choices[0].message.content || '{}'))
+    res.send(completion.choices[0].message.content || '{}')
   } catch (error) {
     console.log(error)
   }
@@ -156,7 +189,7 @@ app.get('/getOpenTenderNotices', async (req, res) => {
     ) // Sets the response as a downloadable CSV file
     response.data.pipe(res) // Streams the downloaded CSV data to the response
     console.log('Successfully downloaded newest tender notice!')
-    return;
+    return
   } catch (error) {
     console.log(
       'Error downloading the new tender notices, please see this error:',
@@ -165,8 +198,6 @@ app.get('/getOpenTenderNotices', async (req, res) => {
     return
   }
 })
-
-
 
 // Endpoint that filters the open tender notices based on a prompt given in the body
 // then saves onto database table filtered_open_tender_notices
@@ -187,7 +218,7 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
-      .limit(4)
+    // .limit(50) // this limits how many tenders to look at
     if (error) {
       console.log('Failed to fetch data', error)
       return res.status(500).json({ error: error.message })
@@ -230,11 +261,11 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
 
     res.json(fetchFilteredData)
 
-    return;
+    return
   } catch (error: any) {
     console.log(error)
     res.status(500).send(error.message)
-    return;
+    return
   }
 })
 
@@ -252,8 +283,6 @@ app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
     res.status(500).send(error.message)
   }
 })
-
-
 
 // Endpoint to download the open tender notices CSV and import it into the database
 app.post('/getOpenTenderNoticesToDB', async (req, res) => {
@@ -315,7 +344,7 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
     const { data, error } = await supabase
       .from('open_tender_notices')
       .select('*')
-    
+
     if (error) {
       console.log('Failed to fetch data', error)
       return res.status(500).json({ error: error.message })
@@ -323,10 +352,10 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 
     const response = data
     res.json(response) // Returns the tender notices data as JSON
-    return;
+    return
   } catch (error) {
     console.log(error)
-    return;
+    return
   }
 })
 
