@@ -30,6 +30,7 @@
         }
       }
     },
+    {"plugin": "@nxlv/python"},
     {
       "plugin": "@nx/webpack/plugin",
       "options": {
