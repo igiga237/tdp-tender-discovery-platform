@@ -110,7 +110,7 @@ export const getOpenTenderNoticesToDB = async () => {
  * @param {FormData} formData - Form data containing PDF file
  * @returns {Promise<any>} Analysis results
  */
-export const analyzePdf = async (formData: FormData) => {
+export const analyze_pdf = async (formData: FormData) => {
   const response = await axios.post(`${PDF_ANALYSIS_URL}/analyze_pdf`, formData)
   return response.data
 }
