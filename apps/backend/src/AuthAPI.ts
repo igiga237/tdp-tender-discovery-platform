@@ -3,6 +3,7 @@ import pkg from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -22,11 +23,16 @@ function matchPass(password: string): boolean {
   return pass.test(password);
 }
 
+async function sendVerificationEmail(email: string, token: string): Promise<void> {
+  // This is a stub for email integration.
+  console.log(`Stub: Sending verification email to ${email} with token: ${token}`);
+}
+
 app.get('/test', (req: Request, res: Respond) => {
   res.json({ message: 'Test route working' });
 });
 
-app.post('/signup', async (req: Request, res: Respond) => {
+app.post('/api/v1/auth/signup', async (req: Request, res: Respond) => {
   // Reads and breaks down incoming requests from the body
   const { name, email, password, confirmPass } = req.body;
 
@@ -44,6 +50,10 @@ app.post('/signup', async (req: Request, res: Respond) => {
   if (!matchPass(password)) {
     return res.status(400).json({ error: 'Password must be at least 8 characters long, it must contain at least one uppercase letter, must have one number, and must contain one special character.' });
   }
+  
+  const Token = crypto.randomBytes(32).toString('hex');
+  await sendVerificationEmail(email, Token);
+ // console.log(`Generated email verification token for ${email}: ${Token}`);
 
   // Call the Supabase sign up authentication API
   const { data, error } = await supabaseClient.auth.signUp(
