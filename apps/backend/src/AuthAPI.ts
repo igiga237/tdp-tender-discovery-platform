@@ -23,11 +23,16 @@ function matchPass(password: string): boolean {
   return pass.test(password);
 }
 
+async function sendVerificationEmail(email: string, token: string): Promise<void> {
+  // This is a stub for email integration.
+  console.log(`Stub: Sending verification email to ${email} with token: ${token}`);
+}
+
 app.get('/test', (req: Request, res: Respond) => {
   res.json({ message: 'Test route working' });
 });
 
-app.post('/signup', async (req: Request, res: Respond) => {
+app.post('/api/v1/auth/signup', async (req: Request, res: Respond) => {
   // Reads and breaks down incoming requests from the body
   const { name, email, password, confirmPass } = req.body;
 
@@ -47,7 +52,8 @@ app.post('/signup', async (req: Request, res: Respond) => {
   }
   
   const Token = crypto.randomBytes(32).toString('hex');
-  console.log(`Generated email verification token for ${email}: ${Token}`);
+  await sendVerificationEmail(email, Token);
+ // console.log(`Generated email verification token for ${email}: ${Token}`);
 
   // Call the Supabase sign up authentication API
   const { data, error } = await supabaseClient.auth.signUp(
