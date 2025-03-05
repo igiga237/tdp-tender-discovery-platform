@@ -63,6 +63,139 @@ const targetColumns = [
 const app = express()
 app.use(cors({ origin: '*' })) // Allow all origins
 app.use(express.json({ limit: '10mb' })) // Limit is 1mb so can parse more tenders
+app.use(cors({
+  origin: 'http://localhost:4200', 
+  methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow common methods
+  allowedHeaders: 'Content-Type,Authorization', // Allow headers
+  credentials: true // Allow credentials
+  }));
+
+
+/**
+ * @route GET /api/v1/tenders/search
+ * @desc Search tenders with filters and pagination
+ * @query 
+ *   - query: string (search term)
+ *   - category: string
+ *   - location: string
+ *   - status: string
+ *   - deadline_from: string (ISO date)
+ *   - deadline_to: string (ISO date)
+ *   - budget_min: number  // UNSURE: not in database
+ *   - budget_max: number  // UNSURE: not in database
+ *   - sort_by: string (column name)
+ *   - page: number (default 1)
+ *   - limit: number (default 10)
+ */
+/** */
+app.get('/api/v1/tenders/search', async (req, res) => {
+  try {
+    console.log('Request received at /api/v1/tenders/search');
+
+    // Extract query parameters and explicitly convert them
+    const query = typeof req.query.query === 'string' ? req.query.query : undefined;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    const location = typeof req.query.location === 'string' ? req.query.location : undefined;
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+    
+    const deadline_from = typeof req.query.deadline_from === 'string' ? req.query.deadline_from : undefined;
+    const deadline_to = typeof req.query.deadline_to === 'string' ? req.query.deadline_to : undefined;
+
+    // Below are potentially not needed:
+    // const budget_min = typeof req.query.budget_min === 'string' ? Number(req.query.budget_min) : undefined;
+    // const budget_max = typeof req.query.budget_max === 'string' ? Number(req.query.budget_max) : undefined;
+
+    // UNSURE: not sure what 'criteria' is specifically supposed to be
+    const sort_by = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'publicationDate-datePublication';
+
+    const page = typeof req.query.page === 'string' ? Number(req.query.page) : 1;
+    const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 10;
+    const offset = (page - 1) * limit;
+
+    // Base query selecting relevant fields
+    let dbQuery = supabase
+      .from('open_tender_notices')
+      // MAYBE: might want to make it .select('*', { count: 'exact' }) to get all fields in future
+      .select(
+        'title-titre-eng, referenceNumber-numeroReference, tenderStatus-appelOffresStatut-eng, tenderClosingDate-appelOffresDateCloture, expectedContractStartDate-dateDebutContratPrevue, expectedContractEndDate-dateFinContratPrevue, procurementCategory-categorieApprovisionnement, regionsOfDelivery-regionsLivraison-eng',
+        { count: 'exact' }
+      )
+      .range(offset, offset + limit - 1);
+
+    // **Apply Filters Based on Query Parameters**
+    if (query) {
+      dbQuery = dbQuery.ilike('title-titre-eng', `%${query}%`);
+    }
+    if (category) {
+      dbQuery = dbQuery.eq('procurementCategory-categorieApprovisionnement', category);
+    }
+    if (location) {
+      dbQuery = dbQuery.ilike('regionsOfDelivery-regionsLivraison-eng', `%${location}%`);
+    }
+    if (status) {
+      dbQuery = dbQuery.eq('tenderStatus-appelOffresStatut-eng', status);
+    }
+    if (deadline_from) {
+      dbQuery = dbQuery.gte('tenderClosingDate-appelOffresDateCloture', deadline_from);
+    }
+    if (deadline_to) {
+      dbQuery = dbQuery.lte('tenderClosingDate-appelOffresDateCloture', deadline_to);
+    }
+    // Below are potentially not needed:
+    // if (budget_min && !isNaN(Number(budget_min))) {
+    //   dbQuery = dbQuery.gte('budget_min', Number(budget_min));
+    // }
+    // if (budget_max && !isNaN(Number(budget_max))) {
+    //   dbQuery = dbQuery.lte('budget_max', Number(budget_max));
+    // }   
+
+    // sort by button conditions
+    switch (sort_by) {
+      case 'newest':
+        dbQuery = dbQuery.order('publicationDate-datePublication', { ascending: false });
+        break;
+      case 'oldest':
+        dbQuery = dbQuery.order('publicationDate-datePublication', { ascending: true });
+        break;
+      // Below are potentially not needed:
+      // case 'highest_budget':
+      //   dbQuery = dbQuery.order('budget_max', { ascending: true });
+      //   break;
+      // case 'lowest_budget':
+      //   // INCOMPLETE: take in user input min budget
+      //   break;
+      default:
+        // Default: relevance (do not explicitly order)
+        break;
+    }
+
+    // Execute query
+    const { data, error, count } = await dbQuery;
+
+    if (error) {
+      throw new Error(`Failed to fetch tender notices: ${error.message}`);
+    }
+
+    // Return JSON response
+    res.json({
+      tenders: data,
+      pagination: {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching tenders:', error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
+  }
+});
+
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -124,7 +257,7 @@ app.post('/getRfpAnalysis', async (req, res) => {
 
     if (error) {
       console.error('Error storing RFP analysis:', error)
-      return res.status(500).json({ error })
+      res.status(500).json({ error })  // REMOVED: removed return keyword, got rid of overload issues
     }
 
     res.json(response || '{}')
@@ -301,7 +434,7 @@ app.get('/getFilteredTenderNoticesFromDB', async (req, res) => {
     console.error('Error fetching filtered notices:', error)
     res.status(500).json({ error: error.message })
   }
-})
+});
 
 /**
  * Downloads and imports tender notices CSV into database
