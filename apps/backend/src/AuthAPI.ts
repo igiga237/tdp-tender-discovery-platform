@@ -42,6 +42,15 @@ app.post('/api/v1/auth/signup', async (req: Request, res: Respond) => {
   if (!matchPass(password)) {
     return res.status(400).json({ error: 'Password must be at least 8 characters long, it must contain at least one uppercase letter, must have one number, and must contain one special character.' });
   }
+
+
+  const { data: userList, error: listError } = await supabaseClient.auth.admin.listUsers({ query: email });
+  if (listError) {
+    return res.status(500).json({ error: listError.message });
+  }
+  if (userList && userList.users && userList.users.length > 0) {
+    return res.status(400).json({ error: 'User already exists.' });
+  }
   
 
   // Call the Supabase sign up authentication API
@@ -49,12 +58,15 @@ app.post('/api/v1/auth/signup', async (req: Request, res: Respond) => {
     { email, password },
     { data: { fullName: name } } 
   );
+
+
   // If the sign up does not proceed successfully, supabase sends out error
   if (error) {
     
     return res.status(400).json({ error: error.message });
   }
 
+ 
   // if the sign up should succeed, email verification will be sent by supabase and the client should be informed to check their email
   res.status(200).json({
     message: 'The sign up has completed successfully. Please proceed with the instructions in  your email to verify your account.',
