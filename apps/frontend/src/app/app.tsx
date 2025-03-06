@@ -3,6 +3,7 @@ import TenderData from "./pages/TenderData"
 import LeadGenChat from "./pages/LeadGenChat"
 import LeadGenChatV2 from "./pages/LeadGenChatV2"
 import Rfp from "./pages/Rfp"
+import TenderSearch from "./pages/TenderSearch"
 export function App() {
 
   return (
@@ -14,12 +15,14 @@ export function App() {
           Go to prompt page to filter leads, generation, v2
         </Link>
         <Link to="rfp">Testing page for RFP</Link>
+        <Link to="/tendersearch">Search for Tenders</Link>
       </nav>
       <Routes>
         <Route path="/tenderdata" element={<TenderData />} />
         <Route path="/leadgenchat" element={<LeadGenChat />} />
         <Route path="/leadgenchatv2" element={<LeadGenChatV2 />} />
         <Route path="/rfp" element={<Rfp />} />
+        <Route path="/tendersearch" element={<TenderSearch />} />
       </Routes>
     </>
   )
