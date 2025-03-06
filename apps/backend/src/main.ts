@@ -1,16 +1,42 @@
-import * as path from 'path'
-import express from 'express'
-import OpenAI from 'openai'
-import cors from 'cors'
-import axios from 'axios'
-import Papa from 'papaparse'
-import { createClient } from '@supabase/supabase-js'
+import * as path from 'path';
+import express from 'express';
+import OpenAI from 'openai';
+import cors from 'cors';
+import axios from 'axios';
+import Papa from 'papaparse';
+import { supabase } from './utils/supabaseClient';
+// import { createClient } from '@supabase/supabase-js'
+import tenderRoutes from './routes/tenderRoutes'
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-)
+// export const supabase = createClient(
+//   process.env.SUPABASE_URL || '',
+//   process.env.SUPABASE_SERVICE_KEY || ''
+// );
+
+// console.log(supabase);
+
+
+// const listTables = async () => {
+//   try {
+//     const { data, error } = await supabase.rpc('sql', {
+//       query: `SELECT * FROM public WHERE schemaname = '*';`
+//     });
+
+//     if (error) {
+//       console.error('Error fetching table names:', error);
+//       return;
+//     }
+
+//     console.log('Tables in public schema:', data);
+//   } catch (err) {
+//     console.error('Error:', err);
+//   }
+// };
+
+// listTables();
+
+
 
 // Define the target columns to filter the tender notices
 // We need to do this because in our database, the names are forcefully truncated
@@ -117,7 +143,8 @@ app.post('/getRfpAnalysis', async (req, res) => {
       ],
     })
 
-    const response = completion.choices[0].message.content
+    const response = completion.choices[0].message.content;
+
     const { error } = await supabase
       .from('rfp_analysis')
       .insert({ data: response })
@@ -125,9 +152,12 @@ app.post('/getRfpAnalysis', async (req, res) => {
     if (error) {
       console.error('Error storing RFP analysis:', error)
       return res.status(500).json({ error })
+      // return res.status(500).json({ error: 'Failed to store RFP analysis' });
     }
 
-    res.json(response || '{}')
+    res.json(response || '{}');
+    // return res.json({ analysis: response });
+
   } catch (error) {
     console.error('Error analyzing RFP:', error)
     res.status(500).json({ error: 'Failed to analyze RFP' })
@@ -393,6 +423,9 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
+
+//routes middleware
+app.use('/api', tenderRoutes);
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`Listening at http://localhost:${process.env.PORT}`)
