@@ -5,6 +5,7 @@ import LeadGenChatV2 from "./pages/LeadGenChatV2"
 import Rfp from "./pages/Rfp"
 import Login from './pages/login';
 import ForgotResetPassword from './pages/ForgotResetPassword';
+import SignUp from "./pages/SignUp"
 export function App() {
 
   return (
@@ -22,6 +23,7 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-reset-password" element={<ForgotResetPassword />} />
         <Route path="/forgot-reset-password/:token" element={<ForgotResetPassword />} />
+        <Route path="/SignUp" element={<SignUp />} />
         <Route path="/rfp" element={<Rfp />} />
       </Routes>
     </>
