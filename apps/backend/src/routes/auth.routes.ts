@@ -11,9 +11,7 @@ authRouter.post('/signup', signupHandler);
 authRouter.post('/login', loginHandler);
 authRouter.post('/forgot-password', forgotPasswordHandler);
 authRouter.post('/reset-password', resetPasswordHandler);
-authRouter.get('/reset-password', (req, res) => {
-  res.send('PLaceholder because there is no redirect page as of yet');
-});
+
 
 export default authRouter;
 

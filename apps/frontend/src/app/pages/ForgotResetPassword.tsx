@@ -1,23 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const ForgotResetPassword: React.FC = () => {
-  const { token } = useParams();
+  // Attempt to get token from route parameters (if defined)
+  const { token: routeToken } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // State to store tokens
+  const [accessToken, setAccessToken] = useState<string>('');
+  const [refreshToken, setRefreshToken] = useState<string>('');
+
+  // Other state for forms and messages
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // On mount, try to extract tokens from URL hash if not provided via route params.
+  useEffect(() => {
+    if (routeToken) {
+      setAccessToken(routeToken);
+      // In case refresh token is in the hash, extract it:
+      if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const refresh = params.get('refresh_token');
+        if (refresh) setRefreshToken(refresh);
+      }
+    } else if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const access = params.get('access_token');
+      const refresh = params.get('refresh_token');
+      if (access) setAccessToken(access);
+      if (refresh) setRefreshToken(refresh);
+    }
+  }, [routeToken]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('/api/v1/auth/forgot-password', { email });
+      await axios.post('http://localhost:3000/api/v1/auth/forgot-password', { email });
       setMessage('Password reset link has been sent to your email.');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Forgot Password Error:', error.response?.data || error.message);
       setMessage('Error: Unable to send reset email.');
     }
     setLoading(false);
@@ -29,12 +58,26 @@ const ForgotResetPassword: React.FC = () => {
       setMessage('Passwords do not match.');
       return;
     }
+    if (!accessToken || !refreshToken) {
+      setMessage('Reset tokens are missing. Please use the link in your email.');
+      return;
+    }
     setLoading(true);
     try {
-      await axios.post('/api/v1/auth/reset-password', { token, password });
+      await axios.post(
+        'http://localhost:3000/api/v1/auth/reset-password',
+        { newPassword: password, refreshToken },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       setMessage('Password has been reset successfully. Redirecting to login...');
       setTimeout(() => navigate('/login'), 3000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Reset Password Error:', error.response?.data || error.message);
       setMessage('Error: Unable to reset password.');
     }
     setLoading(false);
@@ -42,11 +85,13 @@ const ForgotResetPassword: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      {!token ? (
+      {(!accessToken || !refreshToken) ? (
         // Forgot Password Form
-        <form onSubmit={handleForgotPassword} style={{ width: '300px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px' }}>
+        <form
+          onSubmit={handleForgotPassword}
+          style={{ width: '300px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px' }}
+        >
           <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Forgot Password</h2>
-
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Email:</label>
             <input
@@ -58,7 +103,6 @@ const ForgotResetPassword: React.FC = () => {
               required
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -66,14 +110,19 @@ const ForgotResetPassword: React.FC = () => {
           >
             {loading ? 'Sending...' : 'Send Reset Link'}
           </button>
-
-          {message && <p style={{ marginTop: '10px', textAlign: 'center', color: message.includes('Error') ? 'red' : 'green' }}>{message}</p>}
+          {message && (
+            <p style={{ marginTop: '10px', textAlign: 'center', color: message.includes('Error') ? 'red' : 'green' }}>
+              {message}
+            </p>
+          )}
         </form>
       ) : (
         // Reset Password Form
-        <form onSubmit={handleResetPassword} style={{ width: '300px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px' }}>
+        <form
+          onSubmit={handleResetPassword}
+          style={{ width: '300px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px' }}
+        >
           <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Reset Password</h2>
-
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>New Password:</label>
             <input
@@ -85,7 +134,6 @@ const ForgotResetPassword: React.FC = () => {
               required
             />
           </div>
-
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Confirm Password:</label>
             <input
@@ -97,7 +145,6 @@ const ForgotResetPassword: React.FC = () => {
               required
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -105,8 +152,11 @@ const ForgotResetPassword: React.FC = () => {
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </button>
-
-          {message && <p style={{ marginTop: '10px', textAlign: 'center', color: message.includes('Error') ? 'red' : 'green' }}>{message}</p>}
+          {message && (
+            <p style={{ marginTop: '10px', textAlign: 'center', color: message.includes('Error') ? 'red' : 'green' }}>
+              {message}
+            </p>
+          )}
         </form>
       )}
     </div>

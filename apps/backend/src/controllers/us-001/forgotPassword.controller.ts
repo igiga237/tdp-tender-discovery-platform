@@ -17,8 +17,9 @@ export async function forgotPasswordHandler(req: Request, res: Response) {
       return res.status(400).json({ error: 'Email is required.' });
     }
 
+    // Updated redirectTo URL to match the frontend reset page
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'http://localhost:3000/reset-password'
+      redirectTo: 'http://localhost:4200/forgot-reset-password'
     });
     if (error) {
       return res.status(400).json({ error: error.message });
@@ -31,4 +32,3 @@ export async function forgotPasswordHandler(req: Request, res: Response) {
     return res.status(500).json({ error: err.message });
   }
 }
-
