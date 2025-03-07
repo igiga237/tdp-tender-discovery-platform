@@ -3,22 +3,22 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const ForgotResetPassword: React.FC = () => {
-  // Attempt to get token from route parameters (if defined)
+  // Tries to obtain tokens from the route
   const { token: routeToken } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
-  // State to store tokens
+  // Token storage
   const [accessToken, setAccessToken] = useState<string>('');
   const [refreshToken, setRefreshToken] = useState<string>('');
 
-  // Other state for forms and messages
+  // For forms and messages
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // On mount, try to extract tokens from URL hash if not provided via route params.
+  // extract tokens from url hash if necessary.
   useEffect(() => {
     if (routeToken) {
       setAccessToken(routeToken);
