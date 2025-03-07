@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react"
 
-// 1. Define a TypeScript interface for your tender items
+// 1. interface for your tender items
 interface Tender {
   id: string
   title: string
@@ -9,7 +9,7 @@ interface Tender {
   updatedAt: string // ISO date string
 }
 
-// 2. Hardcode an initial list of tenders (no server needed)
+// 2. Hardcode an initial list of tenders
 const initialTenders: Tender[] = [
   {
     id: "1",
