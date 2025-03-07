@@ -1,16 +1,17 @@
-import * as path from 'path'
-import express from 'express'
-import OpenAI from 'openai'
-import cors from 'cors'
-import axios from 'axios'
-import Papa from 'papaparse'
-import { createClient } from '@supabase/supabase-js'
+import * as path from 'path';
+import express from 'express';
+import OpenAI from 'openai';
+import cors from 'cors';
+import axios from 'axios';
+import Papa from 'papaparse';
+import { supabase } from './utils/supabaseClient';
+// import { createClient } from '@supabase/supabase-js'
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-)
+// const supabase = createClient(
+//   process.env.SUPABASE_URL || '',
+//   process.env.SUPABASE_SERVICE_KEY || ''
+// )
 
 // Define the target columns to filter the tender notices
 // We need to do this because in our database, the names are forcefully truncated
@@ -117,7 +118,7 @@ app.get('/api/v1/tenders/search', async (req, res) => {
       .from('open_tender_notices')
       // MAYBE: might want to make it .select('*', { count: 'exact' }) to get all fields in future
       .select(
-        'title-titre-eng, referenceNumber-numeroReference, tenderStatus-appelOffresStatut-eng, tenderClosingDate-appelOffresDateCloture, expectedContractStartDate-dateDebutContratPrevue, expectedContractEndDate-dateFinContratPrevue, procurementCategory-categorieApprovisionnement, regionsOfDelivery-regionsLivraison-eng',
+        'title-titre-eng, referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng,tenderStatus-appelOffresStatut-eng, tenderClosingDate-appelOffresDateCloture, expectedContractStartDate-dateDebutContratPrevue, expectedContractEndDate-dateFinContratPrevue, procurementCategory-categorieApprovisionnement, regionsOfDelivery-regionsLivraison-eng',
         { count: 'exact' }
       )
       .range(offset, offset + limit - 1);
@@ -176,9 +177,38 @@ app.get('/api/v1/tenders/search', async (req, res) => {
       throw new Error(`Failed to fetch tender notices: ${error.message}`);
     }
 
+    interface RawTenderData {
+      'title-titre-eng': string;
+      'referenceNumber-numeroReference': string;
+      'tenderDescription-descriptionAppelOffres-eng':string,
+      'tenderStatus-appelOffresStatut-eng': string;
+      'tenderClosingDate-appelOffresDateCloture': string;
+      'expectedContractStartDate-dateDebutContratPrevue': string;
+      'expectedContractEndDate-dateFinContratPrevue': string;
+      'procurementCategory-categorieApprovisionnement': string;
+      'regionsOfDelivery-regionsLivraison-eng': string;
+    }
+
+    // Transforming data 
+    const transformedTenders = (data as unknown as RawTenderData[]).map(tender => ({
+      title: tender['title-titre-eng'],
+      referenceNumber: tender['referenceNumber-numeroReference'],
+      description:tender['tenderDescription-descriptionAppelOffres-eng'],
+      status: tender['tenderStatus-appelOffresStatut-eng'],
+      closingDate: tender['tenderClosingDate-appelOffresDateCloture'],
+      contractStartDate: tender['expectedContractStartDate-dateDebutContratPrevue'],
+      contractEndDate: tender['expectedContractEndDate-dateFinContratPrevue'],
+      category: tender['procurementCategory-categorieApprovisionnement'],
+      regions: tender['regionsOfDelivery-regionsLivraison-eng'],
+
+    }));
+
+    
+
     // Return JSON response
     res.json({
-      tenders: data,
+      // tenders: data,
+      tenders: transformedTenders,
       pagination: {
         total: count,
         page,
