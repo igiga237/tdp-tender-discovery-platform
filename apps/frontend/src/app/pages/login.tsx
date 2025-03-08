@@ -13,10 +13,12 @@ const Login: React.FC = () => {
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     try {
-      const response = await axios.post('/api/v1/auth/login', data);
+      const response = await axios.post('http://localhost:3000/api/v1/auth/login', data);
       if (response.status === 200) {
         localStorage.setItem('token', response.data.token);
+        console.log('Login successful', response.data);
         window.location.href = '/dashboard';
+        
       }
     } catch (error) {
       console.error('Login failed', error);
