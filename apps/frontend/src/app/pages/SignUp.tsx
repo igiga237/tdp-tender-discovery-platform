@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const SignUp: React.FC = () => {
+  const navigate = useNavigate(); 
+
+  // State for form inputs
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -9,20 +14,25 @@ const SignUp: React.FC = () => {
     confirmPassword: "",
   });
 
+   // State for validation errors
   const [errors, setErrors] = useState({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    general: "",
   });
 
+  // State to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Field icons
   const UserIcon = User;
   const EmailIcon = Mail;
   const LockIcon = Lock;
 
+  // Email validation function
   const validateEmail = async (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -32,6 +42,7 @@ const SignUp: React.FC = () => {
     return "";
   };
 
+  // Password validation function
   const validatePassword = (password: string) => {
     const passwordRegex =
       /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
@@ -40,8 +51,9 @@ const SignUp: React.FC = () => {
       return "Password must be at least 8 characters, include one uppercase letter, one number, and one special character.";
     }
     return "";
-  }; // Supabase verifies uniqueness, the error will be displayed only after the user submits the form.
+  };
 
+  // Handle input change and validate email on-the-fly
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -52,6 +64,7 @@ const SignUp: React.FC = () => {
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -61,6 +74,7 @@ const SignUp: React.FC = () => {
       email: "",
       password: "",
       confirmPassword: "",
+      general: "",
     };
 
     // Full Name Validation
@@ -91,12 +105,10 @@ const SignUp: React.FC = () => {
 
     setErrors(newErrors);
 
-    if (!valid) return;
-
-    console.log("Form submitted!");  // Debugging message
+    if (!valid) return; // Stop submission if validation fails
 
     try {
-        const response = await fetch("/api/v1/auth/signup", {
+        const response = await fetch("http://localhost:3000/api/v1/auth/signup", { // Send signup request to backend API
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,18 +124,26 @@ const SignUp: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          general: data.error || "Sign up failed. Please try again.",
-        }));
+        if (data.error === "User already exists.") { // Handle existing user error from backend
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            email: "An account with this email already exists.",
+          }));
+        } else {
+          setErrors((prevErrors) => ({
+            ...prevErrors,
+            general: data.error || "Sign up failed. Please try again.",
+          }));
+        }
       } else {
         alert(data.message); // Show success message
+        navigate("/login"); // Redirect to login page
       }
     } catch (error) {
       console.error("Error signing up:", error);
       setErrors((prevErrors) => ({
         ...prevErrors,
-        general: "An error occurred. Please try again later.",
+        general: "An error occurred. Please try again later.", // Update the general error state to display a user-friendly message
       }));
     }
   };
@@ -134,14 +154,12 @@ const SignUp: React.FC = () => {
         {/* Logo */}
         <div className="flex justify-center mb-4">
           <img
-            src="/logo.png"
+            src="/logo.png" // Originally used Wouessi logo locally for testing
             alt="Wouessi Logo"
             className="w-32 h-auto object-contain"
           />
         </div>
           
-
-
         <h2 className="text-2xl font-bold text-center text-[#2A00B7] mb-4">
           Sign Up
         </h2>
@@ -160,7 +178,7 @@ const SignUp: React.FC = () => {
                   ? "border-red-500"
                   : "focus:ring-2 focus:ring-purple-600"
               }`}
-              required
+              required // Field cannot be empty
             />
             {errors.fullName && (
               <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
@@ -180,7 +198,7 @@ const SignUp: React.FC = () => {
                   ? "border-red-500"
                   : "focus:ring-2 focus:ring-purple-600"
               }`}
-              required
+              required // Field entry must respect email format John@Doe.com
             />
             {errors.email && (
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -197,13 +215,13 @@ const SignUp: React.FC = () => {
               value={formData.password}
               onChange={(e) => {
                 if (e.target.dataset.touched === "true") {
-                  setFormData({ ...formData, password: "" });
+                  setFormData({ ...formData, password: "" }); // Reset password field if user leave and comes back to modify it
                   e.target.removeAttribute("data-touched");
                 } else {
                   setFormData({ ...formData, password: e.target.value });
                 }
               }}
-              onFocus={(e) => {
+              onFocus={(e) => { // Tracks whether the input field has been interacted with
                 if (!formData.password) {
                   e.target.removeAttribute("data-touched");
                 } else {
@@ -218,10 +236,12 @@ const SignUp: React.FC = () => {
               required
             />
             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              type="button" // Ensures this button does NOT submit the form
+              onClick={() => setShowPassword(!showPassword)} // Toggles password visibility
               className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-            ></button>
+            > 
+              {showPassword ? <FaEyeSlash /> : <FaEye />} 
+            </button>
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
             )}
@@ -231,19 +251,19 @@ const SignUp: React.FC = () => {
           <div className="relative">
             <LockIcon className="absolute left-3 top-3 text-gray-500" />
             <input
-              type={showConfirmPassword ? "text" : "password"}
+              type={showConfirmPassword ? "text" : "password"} // Toggle between visible text and hidden password
               name="confirmPassword"
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={(e) => {
                 if (e.target.dataset.touched === "true") {
-                  setFormData({ ...formData, confirmPassword: "" });
+                  setFormData({ ...formData, confirmPassword: "" }); // Reset password field if user leave and comes back to modify it
                   e.target.removeAttribute("data-touched");
                 } else {
                   setFormData({ ...formData, confirmPassword: e.target.value });
                 }
               }}
-              onFocus={(e) => {
+              onFocus={(e) => { // Tracks whether the input field has been interacted with
                 if (!formData.confirmPassword) {
                   e.target.removeAttribute("data-touched");
                 } else {
@@ -258,10 +278,12 @@ const SignUp: React.FC = () => {
               required
             />
             <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              type="button" // Ensures this button does NOT submit the form
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)} // Toggles password visibility
               className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-            ></button>
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
             {errors.confirmPassword && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.confirmPassword}
@@ -272,19 +294,24 @@ const SignUp: React.FC = () => {
           {/* Create Account Button */}
           <div className="flex justify-center mt-4">
             <button
-              type="submit"
+              type="submit" // Submits the form when clicked
               className="w-full bg-[#2A00B7] text-white px-4 py-3 rounded-lg hover:bg-[#20008A] transition duration-200"
             >
               Create Account
             </button>
           </div>
 
+          {/* General API Error Message (Displays for "User already exists.") */}
+          {errors.general && (
+            <p className="text-red-500 text-sm mt-2 text-center">{errors.general}</p>
+            )}
+
           {/* Already have an account? */}
           <div className="text-sm text-gray-600 text-left mt-2">
             Already have an account?{" "}
-            <a href="#" className="text-[#2A00B7] font-bold hover:underline">
+            <Link to="/login" className="text-[#2A00B7] font-bold hover:underline">
               Login
-            </a>
+            </Link>
           </div>
         </form>
       </div>
