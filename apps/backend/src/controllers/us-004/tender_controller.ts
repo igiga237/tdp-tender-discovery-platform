@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 const tenderServices = require('../../services/tenderServices');
 
+console.log('tender_controller.ts loaded');
+
 export const searchTendersHandler = async (req: Request, res: Response): Promise<Response> => {
   try {
     // Extract and validate query parameters

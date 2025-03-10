@@ -38,6 +38,7 @@ const TenderSearch = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, totalPages: 0 });
+
   const fetchTenders = async () => {
     setLoading(true);
     setError("");
@@ -56,19 +57,28 @@ const TenderSearch = () => {
       limit: pagination.limit,
     };
 
-    const response = await fetchTendersAPI(params);
-    console.log(">>>res",params);
-    if (response.success) {
-      setTenders(response.data.tenders || []);
-      setPagination(response.data.pagination);
-    } else {
-      alert("Please login and try again");
+    try {
+      const response = await fetchTendersAPI(params);
+      console.log(">>> Response from search API:", response);
+
+      // Check if the request succeeded:
+      // response => { success: true, data: { tenders: [...], pagination: {...} } }
+      if (response.success && response.data && response.data.tenders) {
+        setTenders(response.data.tenders);
+        setPagination(response.data.pagination);
+      } else {
+        alert("Please login and try again");
+      }
+    } catch (err: any) {
+      console.error("Error in fetchTenders:", err);
+      setError(err.message || "An error occurred");
     }
-    
+
     setLoading(false);
   };
 
   useEffect(() => {
+    // Debounce effect for changes in query, category, etc.
     const delayDebounceFn = setTimeout(() => {
       setPagination((prev) => ({ ...prev, page: 1 }));
       fetchTenders();
@@ -100,10 +110,10 @@ const TenderSearch = () => {
 
       {/* Search filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-        <select className="border p-2 rounded focus:outline-none  focus:ring-2 focus:ring-blue-500" 
-        value={category} 
-        onChange={(e) => setCategory(e.target.value)}
+        <select
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
         >
           <option value="">Select Category</option>
           <option value="*GD">General</option>
@@ -111,17 +121,18 @@ const TenderSearch = () => {
           <option value="*CNST">Construction</option>
         </select>
 
-        <input type="text" 
-        placeholder="Location" 
-        className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={location} 
-        onChange={(e) => setLocation(e.target.value)} 
+        <input
+          type="text"
+          placeholder="Location"
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
         />
 
-        <select 
-        className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={status} 
-        onChange={(e) => setStatus(e.target.value)}
+        <select
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
         >
           <option value="">Select Status</option>
           <option value="Open">Open</option>
@@ -129,45 +140,46 @@ const TenderSearch = () => {
           <option value="Awarded">Awarded</option>
         </select>
 
+        <div className="flex flex-col space-y-1">
+          <label className="text-gray-700 text-sm font-semibold">Deadline Start Date:</label>
+          <input
+            type="date"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={deadlineFrom}
+            onChange={(e) => setDeadlineFrom(e.target.value)}
+          />
+        </div>
 
         <div className="flex flex-col space-y-1">
-  <label className="text-gray-700 text-sm font-semibold">Deadline Start Date:</label>
-  <input 
-    type="date" 
-    className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-    value={deadlineFrom} 
-    onChange={(e) => setDeadlineFrom(e.target.value)} 
-  />
-</div>
+          <label className="text-gray-700 text-sm font-semibold">Deadline End Date:</label>
+          <input
+            type="date"
+            className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={deadlineTo}
+            onChange={(e) => setDeadlineTo(e.target.value)}
+          />
+        </div>
 
-<div className="flex flex-col space-y-1">
-  <label className="text-gray-700 text-sm font-semibold">Deadline End Date:</label>
-  <input 
-    type="date" 
-    className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-    value={deadlineTo} 
-    onChange={(e) => setDeadlineTo(e.target.value)} 
-  />
-</div>
-
-        
-        <input type="number" 
-        placeholder="Min Budget Not Enough Data" 
-        className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={budgetMin} 
-        onChange={(e) => setBudgetMin(e.target.value)} 
-        />
-        
-        <input type="number" 
-        placeholder="Max Budget Not Enough Data" 
-        className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={budgetMax} 
-        onChange={(e) => setBudgetMax(e.target.value)} 
+        <input
+          type="number"
+          placeholder="Min Budget Not Enough Data"
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={budgetMin}
+          onChange={(e) => setBudgetMin(e.target.value)}
         />
 
-        <select className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={sortBy} 
-        onChange={(e) => setSortBy(e.target.value)}
+        <input
+          type="number"
+          placeholder="Max Budget Not Enough Data"
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={budgetMax}
+          onChange={(e) => setBudgetMax(e.target.value)}
+        />
+
+        <select
+          className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
         >
           <option value="relevance">Relevance</option>
           <option value="newest">Newest First</option>
@@ -175,47 +187,35 @@ const TenderSearch = () => {
           <option value="highest_budget">Highest Budget</option>
           <option value="lowest_budget">Lowest Budget</option>
         </select>
-        
-        {/* <select className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" 
-        value={order} 
-        onChange={(e) => setOrder(e.target.value)}
-        >
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select> */}
-
       </div>
-       {/* Display search results */}
+
+      {/* Display search results */}
       <div className="mt-6">
-
         {loading && <p className="text-gray-500">Loading tenders...</p>}
-
         {error && <p className="text-red-500">{error}</p>}
-
         {tenders.length === 0 && !loading && <p className="text-gray-500">No results found.</p>}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
           {tenders.map((tender) => (
             <div key={tender.referenceNumber} className="border p-4 rounded shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-xl font-bold text-black">{tender.title}</h2>
-
               <p className="text-sm text-gray-600 mb-1">
                 <span className="font-semibold">Reference:</span> {tender.referenceNumber}
               </p>
               <p className="text-sm text-gray-600 mb-1">
                 <span className="font-semibold">Publication Date:</span> {tender.publicationDate}
               </p>
-
               <p className="text-sm text-gray-600 mb-1">
-                <span className="font-semibold">Status:</span> 
-                <span className={`ml-1 px-2 py-1 rounded ${tender.status === 'Open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                <span className="font-semibold">Status:</span>{" "}
+                <span
+                  className={`ml-1 px-2 py-1 rounded ${
+                    tender.status === "Open" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
+                >
                   {tender.status}
                 </span>
               </p>
-
               <p className="text-sm text-gray-600 mb-1">
-                <span className="font-semibold">Closing:</span> 
+                <span className="font-semibold">Closing:</span>{" "}
                 {new Date(tender.closingDate).toLocaleDateString()}
               </p>
               <p className="text-sm text-gray-600 mb-1">
@@ -226,13 +226,7 @@ const TenderSearch = () => {
               </p>
               <p className="text-gray-700 mt-2 text-sm">
                 <span className="font-semibold">Description:</span> {tender.description}
-              </p> 
-              
-
-              {/* <p className="text-sm">Status:{tender.status}</p> */}
-              {/* <p className="text-gray-700">{tender.description}</p>
-              <p className="text-sm"><strong>Deadline:</strong> {new Date(tender.closingDate).toLocaleDateString()}</p> */}
-              {/* <p className="text-sm"><strong>Budget:</strong> ${tender.budget_min} - ${tender.budget_max}</p> */}
+              </p>
             </div>
           ))}
         </div>
@@ -257,10 +251,9 @@ const TenderSearch = () => {
             Next
           </button>
         </div>
-
-
       </div>
     </div>
   );
 };
+
 export default TenderSearch;

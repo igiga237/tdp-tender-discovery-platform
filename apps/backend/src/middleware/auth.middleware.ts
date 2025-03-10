@@ -9,8 +9,9 @@ const white_list = [
   '/api/v1/auth/login',
   '/api/v1/auth/forgotpassword',
   '/api/v1/auth/resetpassword',
-  '/' 
+  '/'
 ];
+
 declare module "express" {
   export interface Request {
     user?: {
@@ -19,9 +20,10 @@ declare module "express" {
     };
   }
 }
+
 export const auth = (req: Request, res: Response, next: NextFunction): Response | void => {
-  // Check if the request URL is in the whitelist
-  if (white_list.some((item) => req.originalUrl === item)) {
+  // Use startsWith to allow query parameters on whitelisted URLs.
+  if (white_list.some((item) => req.originalUrl.startsWith(item))) {
     return next();
   }
 
@@ -42,7 +44,7 @@ export const auth = (req: Request, res: Response, next: NextFunction): Response 
     // Attach user info to the request object
     req.user = {
       email: decoded.email,
-      name: decoded.name,      
+      name: decoded.name,
     };
 
     return next(); // Continue to the next middleware
@@ -52,3 +54,4 @@ export const auth = (req: Request, res: Response, next: NextFunction): Response 
     });
   }
 };
+

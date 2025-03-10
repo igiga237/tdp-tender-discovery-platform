@@ -14,6 +14,7 @@ import { auth } from './middleware/auth.middleware';
 
 //console.log('Logger:', logger);
 //console.log('Auth Router:', authRouter);
+//console.log('Tender Route', tenderRouter);
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -71,7 +72,15 @@ const targetColumns = [
 ]
 
 const app = express()
-app.use(cors({ origin: '*' })) // Allow all origins
+//app.use(cors({ origin: '*' })) // Allow all origins
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+  credentials: false
+}));
+
 app.use(express.json({ limit: '10mb' })) // Limit is 1mb so can parse more tenders
 app.use(logger);
 app.use(delay);

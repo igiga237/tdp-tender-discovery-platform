@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../component/AuthContext';
-import { loginAPI } from '../../api';
+import { loginAPI, getaccountAPI } from '../../api';
 
 type LoginFormData = {
   email: string;
@@ -20,28 +20,53 @@ const Login: React.FC = () => {
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setLoading(true); // Start loading
     try {
+      // 1. Call your Node backend login endpoint (not Supabase directly)
       const res = await loginAPI(data.email, data.password);
-  
+
+      // 2. If the login was successful, store the custom JWT from res.data.token
       if (res.status === 200) {
+        // This is the Node JWT returned by your Node backend
         localStorage.setItem('token', res.data.token);
+        // We can also store user email or other data if you want
         localStorage.setItem('user_email', res.data.user.email);
-  
-        setAuth({
-          isAuthenticated: true,
-          user: {
-            email: res.data.user.email,
-            name: res.data.user.name || res.data.user.email, // Fallback to email
-          },
-        });
-  
+
         alert("Login Successful!");
+
+        // 3. Re-fetch the user account so auth.context sees the newly recognized user
+        try {
+          const accountRes = await getaccountAPI();
+          console.log("Response from /api/v1/auth/account after login:", accountRes);
+
+          if (accountRes && accountRes.user) {
+            setAuth({
+              isAuthenticated: true,
+              user: {
+                email: accountRes.user.email,
+                name: accountRes.user.name || accountRes.user.email,
+              },
+            });
+          } else {
+            console.warn("No user returned from getaccountAPI after login");
+            setAuth({
+              isAuthenticated: false,
+              user: { email: "", name: "" },
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching user account after login:", err);
+          setAuth({
+            isAuthenticated: false,
+            user: { email: "", name: "" },
+          });
+        }
+
+        // 4. Optional: redirect after a brief delay
         setTimeout(() => navigate('/'), 1000);
-      } 
+      }
+      // Handle other statuses (403 for lockout, etc.)
       else if (res.status === 403) {
-        // Handle lockout error
         alert("Too many failed login attempts. Try again later.");
-      } 
-      else {
+      } else {
         alert("Login failed. Please check your credentials and try again.");
         console.error("Login failed", res);
       }
@@ -56,7 +81,6 @@ const Login: React.FC = () => {
       setLoading(false); // Stop loading
     }
   };
-  
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -127,3 +151,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+

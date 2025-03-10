@@ -1,3 +1,4 @@
+// apps/frontend/src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import TenderData from "./pages/TenderData";
 import LeadGenChat from "./pages/LeadGenChat";
@@ -18,34 +19,46 @@ export function App() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      console.log("App.tsx -> fetchUser called");
+
       const token = localStorage.getItem("token");
+      console.log("LocalStorage token:", token);
 
       if (!token) {
+        console.log("No token found, skipping getaccountAPI");
         setAppLoading(false);
-        return; // No token means no authentication, stop execution
+        return;
       }
 
       try {
-        const response = await getaccountAPI(); // Fetch user data
-        setAuth({
-          isAuthenticated: true,
-          user: {
-            email: response.user.email,
-            name: response.user.name || response.user.email, // Fallback to email if name is missing
-          },
-        });
+        console.log("Calling getaccountAPI...");
+        const response = await getaccountAPI(); 
+        console.log("Response from /api/v1/auth/account:", response);
+
+        // If the backend returns { user: { ... } }, we can setAuth
+        if (response && response.user) {
+          setAuth({
+            isAuthenticated: true,
+            user: {
+              email: response.user.email,
+              name: response.user.name || response.user.email,
+            },
+          });
+        } else {
+          console.warn("No user returned from getaccountAPI");
+          setAuth({ isAuthenticated: false, user: { email: "", name: "" } });
+        }
       } catch (error) {
         console.error("Failed to fetch user account:", error);
         setAuth({ isAuthenticated: false, user: { email: "", name: "" } });
       } finally {
-        setAppLoading(false); // Ensure loading state ends
+        setAppLoading(false);
       }
     };
 
     fetchUser();
-  }, [setAuth]); // Ensure this runs when `setAuth` changes
+  }, [setAuth]);
 
-  // Show loading state while fetching user info
   if (appLoading) {
     return (
       <div style={{
@@ -69,7 +82,7 @@ export function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-reset-password" element={<ForgotResetPassword />} />
         <Route path="/forgot-reset-password/:token" element={<ForgotResetPassword />} />
-        <Route path="/signUp" element={<SignUp />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/tendersearch" element={<TenderSearch />} />
         <Route path="/rfp" element={<Rfp />} />
       </Routes>
@@ -78,3 +91,4 @@ export function App() {
 }
 
 export default App;
+
