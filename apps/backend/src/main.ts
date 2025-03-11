@@ -5,9 +5,10 @@ import cors from 'cors'
 import axios from 'axios'
 import Papa from 'papaparse'
 import { createClient } from '@supabase/supabase-js'
-//import { authRouter } from './routes/auth.routes'
+import { Server as SocketIOServer } from 'socket.io'
 import authRouter from './routes/authRoutes';
 import tenderRouter from './routes/tenderRoutes'
+import bidRouter from './routes/bid.routes'
 import { logger } from './middleware/logger.middleware'
 import { delay } from './middleware/delay.middleware';
 import { auth } from './middleware/auth.middleware';
@@ -409,6 +410,11 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
+app.use('/api/v1/bids', bidRouter)
+
+app.set('io', io)
+
+
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
 
