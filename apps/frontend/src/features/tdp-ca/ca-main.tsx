@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { analyze_pdf, getRfpAnalysis } from '../../api'
-const Rfp = () => {
+import { analyzePdf, getRfpAnalysis } from '../../api/api'
+
+const CaMain = () => {
   const [file, setFile] = useState<File | null>(null)
 
   interface PdfData {
@@ -25,7 +26,7 @@ const Rfp = () => {
     formData.append('pdf', file)
 
     try {
-      const raw_response = await analyze_pdf(formData)
+      const raw_response = await analyzePdf(formData)
       console.log(raw_response)
       setData(await getRfpAnalysis(raw_response))
       console.log('Succesfully uploaded pdf')
@@ -35,6 +36,8 @@ const Rfp = () => {
   }
   return (
     <>
+    <h1>Capability Assessment Module</h1>
+
       <div>
         <form onSubmit={handleSubmit}>
           <h1>Upload PDF</h1>
@@ -65,4 +68,4 @@ const Rfp = () => {
   )
 }
 
-export default Rfp
+export default CaMain
