@@ -5,6 +5,7 @@ import cors from 'cors'
 import axios from 'axios'
 import Papa from 'papaparse'
 import { createClient } from '@supabase/supabase-js'
+import uploadRoutes from './routes/uploadRoutes' // import for upload route
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -88,7 +89,7 @@ app.get('/', (req, res) => {
 app.post('/generateLeads', async (req, res) => {
   try {
     const completion = await openai.chat.completions.create({
-      model: process.env.GEMINI_AI_MODEL_ID || '',
+      model: process.env.AI_MODEL_ID || '',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
         { role: 'user', content: req.body.prompt },
@@ -149,7 +150,7 @@ app.post('/filterTendersWithAI', async (req, res) => {
       messages: [
         {
           role: 'assistant',
-          content: `You are an AI that helps users filter a database of government tenders. 
+          content: `You are an AI that helps users filter a database of government tenders.
 You MUST return a valid JSON response matching this exact format:
 {
   "matches": ["REF1", "REF2"]
@@ -229,8 +230,6 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
       .select(
         'referenceNumber-numeroReference, tenderDescription-descriptionAppelOffres-eng'
       )
-      .limit(200);
-  
 
     if (error) {
       throw new Error(`Failed to fetch tender notices: ${error.message}`)
@@ -245,15 +244,13 @@ app.post('/filterOpenTenderNotices', async (req, res) => {
       }
     )
 
-    const filteredIDs = JSON.parse(response.data).matches
-
+    const filteredIDs = response.data.matches
 
     // Get full data for matched tenders
     const { data: matchedData, error: matchError } = await supabase
       .from('open_tender_notices')
       .select('*')
       .in('referenceNumber-numeroReference', filteredIDs)
-    
 
     if (matchError) {
       throw new Error(`Failed to fetch matched data: ${matchError.message}`)
@@ -395,6 +392,9 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   }
 })
 
+// New route for file uploads
+app.use('/api/v1/documents/upload', uploadRoutes)
+
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
 
@@ -402,3 +402,4 @@ const server = app.listen(process.env.PORT, () => {
   console.log(`Listening at http://localhost:${process.env.PORT}`)
 })
 server.on('error', console.error)
+
