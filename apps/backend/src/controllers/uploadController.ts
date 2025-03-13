@@ -2,6 +2,19 @@ import fs from 'fs'
 import path from 'path'
 import multer, { FileFilterCallback } from 'multer'
 import { Request, Response, NextFunction } from 'express'
+import NodeClam from 'clamscan'
+
+// Initialize ClamAV scanner
+const clamscan = new NodeClam().init({
+  removeInfected: true, 
+  quarantineInfected: false, 
+  scanLog: path.join(process.cwd(), 'clamav.log'), 
+  clamdscan: {
+    socket: '/var/run/clamav/clamd.ctl', 
+    timeout: 60000,
+    localFallback: true,
+  },
+})
 
 // Ensure the 'uploads' directory exists using the project root directory
 const uploadsDir = path.join(process.cwd(), 'uploads')
@@ -40,11 +53,34 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 })
 
+// Middleware to scan files with ClamAV
+async function scanFiles(req: Request, res: Response, next: NextFunction) {
+  if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+    return res.status(400).json({ success: false, message: 'No files uploaded.' })
+  }
+
+  try {
+    const files = req.files as Express.Multer.File[]
+    for (const file of files) {
+      const isInfected = await clamscan.then(scan => scan.isInfected(file.path))
+
+      if (isInfected) {
+        fs.unlinkSync(file.path) // Delete infected file
+        return res.status(400).json({ success: false, message: `File ${file.originalname} is infected.` })
+      }
+    }
+    next() // Proceed to the next middleware if files are clean
+  } catch (error) {
+    console.error('Error scanning file:', error)
+    return res.status(500).json({ success: false, message: 'Error scanning file.' })
+  }
+}
 // Controller function for handling file uploads
 const uploadFiles = [
   // Process file uploads with Multer middleware
   upload.array('files'),
   // Handle the request after files are processed
+  scanFiles, // Scan files before final processing
   (req: Request, res: Response, next: NextFunction) => {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
       return res.status(400).json({
