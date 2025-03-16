@@ -24,4 +24,3 @@ def save_tokenized_text(input_file, output_sentences, output_words):
 
 
     print(f"Tokenized sentences saved to: {output_sentences}")
-
