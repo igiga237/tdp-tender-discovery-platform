@@ -1,14 +1,17 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../components/layouts/Layout";
 import TenderData from "../features/tender-data/TenderData";
-import {AiSearchTender} from "../features/tdp-lg/pages/AiTenderSearch";
+import LgMain from "../features/tdp-lg/lg-main";
 import CaMain from "../features/tdp-ca/ca-main";
 import BmMain from "../features/tdp-bm/bm-main";
+import {AiSearchTender} from "../features/tdp-lg/pages/AiTenderSearch";
 import UploadDoc from '../features/tdp-ca/pages/UploadDoc' // Import UploadDoc from tdp-ca
 import ForgotResetPassword from "../auth/pages/ForgotResetPassword";
 import Login from "../auth/pages/login";
 import SignUp from "../auth/pages/SignUp";
 import {SearchTender} from "../features/tdp-lg/pages/TenderSearch";
+
+  
 const AppRoutes = () => {
   return (
     <Routes>
