@@ -12,6 +12,9 @@ import { logger } from './middleware/logger.middleware'
 import { delay } from './middleware/delay.middleware';
 import { auth } from './middleware/auth.middleware';
 
+import uploadRouter from './routes/uploadRoutes';
+import errorHandler from './middleware/errorHandler';
+
 //console.log('Logger:', logger);
 //console.log('Auth Router:', authRouter);
 
@@ -411,6 +414,13 @@ app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
+
+// Register the upload route
+app.use('/api/v1/documents', uploadRouter);
+
+// Register the error handler last
+app.use(errorHandler);
+
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`Listening at http://localhost:${process.env.PORT}`)
