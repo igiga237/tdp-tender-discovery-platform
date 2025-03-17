@@ -4,6 +4,7 @@ import TenderData from "../features/tender-data/TenderData";
 import {AiSearchTender} from "../features/tdp-lg/pages/AiTenderSearch";
 import CaMain from "../features/tdp-ca/ca-main";
 import BmMain from "../features/tdp-bm/bm-main";
+import UploadDoc from '../features/tdp-ca/pages/UploadDoc' // Import UploadDoc from tdp-ca
 import ForgotResetPassword from "../auth/pages/ForgotResetPassword";
 import Login from "../auth/pages/login";
 import SignUp from "../auth/pages/SignUp";
@@ -29,6 +30,7 @@ const AppRoutes = () => {
 
       {/* Other Feature Routes */}
       <Route path="ca" element={<CaMain />} />
+      <Route path="ca/UploadDoc" element={<UploadDoc />} />
       <Route path="bm" element={<BmMain />} />
     </Route>
   </Routes>
