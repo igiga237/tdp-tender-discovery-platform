@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../components/AuthContext';
 import {loginAPI} from '../../../api/api';
+import googleLogo from '../../../assets/google-logo.png'
 
 type LoginFormData = {
   email: string;
@@ -119,6 +120,29 @@ const Login: React.FC = () => {
             </Link>
           </p>
         </div>
+
+        {/*OR divider*/}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px', width: '100%' }}>
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #ccc', margin: '0 10px' }} />
+          <p style={{ margin: 0, whiteSpace: 'nowrap', color: '#888' }}>OR</p>
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #ccc', margin: '0 10px' }} />
+        </div>
+        <button style={{ 
+          width: '100%', 
+          padding: '10px', 
+          backgroundColor: '#fff', 
+          color: '#000', 
+          border: '1px solid #ccc', 
+          borderRadius: '4px', 
+          marginTop: '10px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '8px' // Creates spacing between the logo and text
+        }}>
+        <img src={googleLogo} alt="google logo" style={{ width: '20px', height: '20px' }} />
+        <span>Sign in with Google</span>
+        </button>
       </form>
       <ToastContainer />
     </div>
