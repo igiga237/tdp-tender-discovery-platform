@@ -1,3 +1,4 @@
+
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 
@@ -14,6 +15,7 @@ function errorHandler(err: any, req: Request, res: Response, next: NextFunction)
       success: false,
       message: err.message,
     });
+
   } else if (err) {
     // Handle general errors
     return res.status(400).json({
@@ -24,5 +26,4 @@ function errorHandler(err: any, req: Request, res: Response, next: NextFunction)
   next();
 }
 
-export default errorHandler;
 
