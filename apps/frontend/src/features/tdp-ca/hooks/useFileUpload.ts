@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import axios from 'axios'
+import axios from './/../../../utils/axios.customize'  // changed from 'axios' to use the customized instance
 
 interface ProgressState {
   started: boolean

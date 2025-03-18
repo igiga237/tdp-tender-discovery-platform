@@ -1,10 +1,10 @@
-import express from 'express'
-import { uploadFiles } from '../controllers/uploadController'
+import { Router } from 'express';
+import { uploadFiles } from '../controllers/us-003/upload_controller';
 
-const router = express.Router()
+const uploadRouter: Router = Router();
 
 // POST route for file uploads
-router.post('/', uploadFiles)
+uploadRouter.post('/upload', uploadFiles);
 
-export default router
+export default uploadRouter;
 
