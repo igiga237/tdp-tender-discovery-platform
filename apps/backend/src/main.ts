@@ -71,7 +71,7 @@ const targetColumns = [
 ]
 
 const app = express()
-app.use(cors({ origin: '*' })) // Allow all origins
+app.use(cors({ origin: '*' , allowedHeaders: "Content-Type, Authorization", credentials: true})) // Allow all origins
 app.use(express.json({ limit: '10mb' })) // Limit is 1mb so can parse more tenders
 app.use(logger);
 app.use(delay);
@@ -407,6 +407,7 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   }
 })
 
+
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
 // Serve static files from the 'assets' folder
@@ -416,3 +417,4 @@ const server = app.listen(process.env.PORT, () => {
   console.log(`Listening at http://localhost:${process.env.PORT}`)
 })
 server.on('error', console.error)
+

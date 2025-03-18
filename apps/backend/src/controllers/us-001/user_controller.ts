@@ -3,7 +3,8 @@ import { Request, Response } from 'express';
 const userServices = require('../../services/userServices');
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import { loginUser } from '../../services/userServices';
+import { loginUser, googleLogin } from '../../services/userServices';
+
 dotenv.config();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -88,5 +89,14 @@ export async function testEmail(req: Request, res: Response) {
   } catch (err: any) {
     console.error('Email error:', err);
     res.status(500).json({ error: err.message });
+  }
+}
+
+export async function googleLoginHandler(req: Request, res: Response) {
+  try {
+    const result = await userServices.googleLogin(req.body);
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 }

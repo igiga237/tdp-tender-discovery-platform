@@ -212,3 +212,39 @@ export async function forgotPassword({ email }: ForgotPasswordInput): Promise<vo
 
 }
 
+export async function googleLogin({ credential }: { credential: string }) {
+  if (!credential) {
+    throw new Error('Google credential is required.');
+  }
+
+  try {
+    // Authenticate with Supabase using Google ID token
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: credential,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Extract user data
+    const user = data.user;
+    if (!user) {
+      throw new Error('User authentication failed.');
+    }
+
+    return {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      user: {
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata?.full_name || '',
+      },
+    };
+  } catch (err: any) {
+    throw new Error(`Google login failed: ${err.message}`);
+  }
+}
+
