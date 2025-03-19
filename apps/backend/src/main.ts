@@ -5,7 +5,6 @@ import cors from 'cors'
 import axios from 'axios'
 import Papa from 'papaparse'
 import { createClient } from '@supabase/supabase-js'
-import uploadRoutes from './routes/uploadRoutes' // import for upload route
 //import { authRouter } from './routes/auth.routes'
 import authRouter from './routes/authRoutes';
 import tenderRouter from './routes/tenderRoutes'
@@ -15,7 +14,8 @@ import { auth } from './middleware/auth.middleware';
 
 import uploadRouter from './routes/uploadRoutes';
 import errorHandler from './middleware/errorHandler';
-import nlpRoutes from './routes/nlpRoutes';
+import router from './routes/nlpRoutes';
+import './services/nlpWatcher';
 
 //console.log('Logger:', logger);
 //console.log('Auth Router:', authRouter);
@@ -408,8 +408,6 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   }
 })
 
-// New route for file uploads
-app.use('/api/v1/documents/upload', uploadRoutes)
 
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
@@ -419,10 +417,11 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')))
 // Register the upload route
 app.use('/api/v1/documents', uploadRouter);
 
+app.use('/api/v1/documents', router);
+
 // Register the error handler last
 app.use(errorHandler);
 
-app.use('/api/v1', nlpRoutes);
 
 
 const server = app.listen(process.env.PORT, () => {

@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { extractDocumentData, getExtractedData } from '../controllers/us-012/nlpController';
-import { authenticateUser } from '../middleware/auth.Middleware';
+//import { auth } from '../middleware/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 
 // Protect routes as needed
-router.post('/documents/extract', authenticateUser, extractDocumentData);
-router.get('/documents/:id/data', authenticateUser, getExtractedData);
+router.post('/extract', extractDocumentData);
+router.get('/:id/data',  getExtractedData);
 
 export default router;
 
