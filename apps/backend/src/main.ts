@@ -428,40 +428,61 @@ app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
 app.use('/api/v1/bids', bidRouter)
 
-
-
-// Serve static files from the 'assets' folder
+// Serve static files
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-// Create an HTTP server and attach Socket.IO to it
+// Create HTTP server and attach Socket.IO
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: { origin: '*' },
 });
 
-io.on('connection', (socket) => {
-  // Retrieve the token from the query
-  const token = socket.handshake.query.token as string | undefined;
-  console.log('A client connected with token:', token);
+// Mapping of user IDs to socket IDs (if needed for later use)
+const userSocketMap: Record<string, string> = {};
 
-  // If you want to initialize Supabase with this token
-  // you must do so within this scope (or pass it along to a helper):
-  if (token) {
-    // Or pass `token` to your subscription init function
-    initSupaBaseSubscription(token,io);
+io.on('connection', async (socket) => {
+  const token = socket.handshake.query.token as string | undefined;
+
+  if (!token) {
+    console.log('No token provided, disconnecting socket.');
+    socket.disconnect();
+    return;
+  }
+
+  try {
+    // Use Supabase auth to decode the token (same as your auth middleware)
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) {
+      console.log('Invalid token, disconnecting socket:', error);
+      socket.disconnect();
+      return;
+    }
+    const userId = data.user.id;
+    console.log(`User ${userId} connected via socket ${socket.id}`);
+
+    // Map the user ID to the socket ID
+    userSocketMap[userId] = socket.id;
+
+    // Call the subscription function with the token object, socket.id, and userId
+    initSupaBaseSubscription({ token }, io, socket.id, userId);
+
+    socket.on('disconnect', () => {
+      console.log(`User ${userId} disconnected from socket.`);
+      delete userSocketMap[userId];
+    });
+  } catch (err) {
+    console.error('Socket connection error:', err);
+    socket.disconnect();
   }
 });
 
+app.set('io', io); // Make io accessible in controllers if needed
 
-
-app.set('io', io); // Make io accessible in your controllers
-// SUPABASE REAL-TIME SUBSCRIPTION
-// Start the HTTP server (instead of app.listen)
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Listening at http://localhost:${PORT}`);
 });
 
-
 export { io, httpServer, app };
+
 
