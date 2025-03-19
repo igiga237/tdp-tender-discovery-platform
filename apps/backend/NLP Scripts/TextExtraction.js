@@ -1,23 +1,19 @@
-// textExtraction.js
-import fs from 'fs/promises';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
+const fs = require('fs/promises');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
-// Extract text from PDF
 async function extractTextFromPDF(pdfPath) {
     const dataBuffer = await fs.readFile(pdfPath);
     const pdfData = await pdfParse(dataBuffer);
     return pdfData.text;
 }
 
-// Extract text from DOCX
 async function extractTextFromDOCX(docxPath) {
     const dataBuffer = await fs.readFile(docxPath);
     const result = await mammoth.extractRawText({ buffer: dataBuffer });
     return result.value;
 }
 
-// Extract text based on file type
 async function extractText(filePath, outputFile = null) {
     let text = '';
     if (filePath.endsWith('.pdf')) {
@@ -33,3 +29,6 @@ async function extractText(filePath, outputFile = null) {
     }
     return text;
 }
+
+// Change module export to CommonJS syntax
+module.exports = { extractText };
