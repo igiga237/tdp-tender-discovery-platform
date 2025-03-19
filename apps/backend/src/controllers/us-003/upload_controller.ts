@@ -15,6 +15,7 @@ export const uploadFiles = [
     }
 
     const filesInfo = (req.files as Express.Multer.File[]).map((file) => ({
+      documentId: file.originalname, // Added documentId using the original file name
       originalName: file.originalname,
       path: file.path,
       size: file.size,

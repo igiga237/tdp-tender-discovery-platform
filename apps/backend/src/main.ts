@@ -15,6 +15,7 @@ import { auth } from './middleware/auth.middleware';
 
 import uploadRouter from './routes/uploadRoutes';
 import errorHandler from './middleware/errorHandler';
+import nlpRoutes from './routes/nlpRoutes';
 
 //console.log('Logger:', logger);
 //console.log('Auth Router:', authRouter);
@@ -420,6 +421,8 @@ app.use('/api/v1/documents', uploadRouter);
 
 // Register the error handler last
 app.use(errorHandler);
+
+app.use('/api/v1', nlpRoutes);
 
 
 const server = app.listen(process.env.PORT, () => {
