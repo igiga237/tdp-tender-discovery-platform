@@ -5,7 +5,7 @@ import cors from 'cors'
 import axios from 'axios'
 import Papa from 'papaparse'
 import { createClient } from '@supabase/supabase-js'
-import uploadRoutes from './routes/uploadRoutes' // import for upload route
+//import uploadRoutes from './routes/uploadRoutes' // import for upload route
 //import { authRouter } from './routes/auth.routes'
 import authRouter from './routes/authRoutes';
 import tenderRouter from './routes/tenderRoutes'
@@ -408,7 +408,7 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 })
 
 // New route for file uploads
-app.use('/api/v1/documents/upload', uploadRoutes)
+//app.use('/api/v1/documents/upload', uploadRoutes)
 
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
