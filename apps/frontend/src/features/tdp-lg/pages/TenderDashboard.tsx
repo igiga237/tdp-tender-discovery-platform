@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react'
 import TenderList from '../components/TenderList'
 import { Pagination, Select, MenuItem, SelectChangeEvent } from '@mui/material';
 import io from "socket.io-client";
-
-const token = localStorage.getItem("access_token");
-
 interface SubTender {
   subId: string;
   title: string;
@@ -16,8 +13,6 @@ interface SubTender {
 const TenderDashboard: React.FC = () => {
   const [tenders, setTenders] = useState<any[]>([])
   const [filteredTenders, setFilteredTenders] = useState<any[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
@@ -29,12 +24,8 @@ const TenderDashboard: React.FC = () => {
 
   const fetchTenders = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("access_token");
-
       if (!token) {
-        setError("You must be logged in to view your Tenders.");
-        setLoading(false);
         return;
       }
 
@@ -51,8 +42,6 @@ const TenderDashboard: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log("Raw response data:", data);
-
       const rawTenders = data.subtenders || [];
 
       // Trim spaces from status values
@@ -60,15 +49,11 @@ const TenderDashboard: React.FC = () => {
         ...subtender,
         status: subtender.status.trim(),
       }));
-
-      console.log("Cleaned sub tenders:", cleanedsubTenders);
       setTenders(cleanedsubTenders);
       setFilteredTenders(cleanedsubTenders);
     } catch (error) {
       console.error("Error fetching tenders:", error);
-      setError("Server error");
     } finally {
-      setLoading(false);
     }
   };
 
@@ -115,8 +100,6 @@ const TenderDashboard: React.FC = () => {
   // Apply filters
   const handleFilter = () => {
     let filtered = tenders
-    console.log("filered tenders", tenders);
-
     if (statusFilter) {
       filtered = filtered.filter((tender) => tender.status === statusFilter)
     }
@@ -201,9 +184,6 @@ const TenderDashboard: React.FC = () => {
       setFilteredTenders(tenders.filter((t) => t.status === status))
     }
   }
-
-  console.log("Filtered tenders>>>>>>>",filteredTenders)
-
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Tenders Dashboard</h1>
