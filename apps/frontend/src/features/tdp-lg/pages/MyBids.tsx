@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from "react";
-import BidDashboard from "../components/BidDashboard";
 import io from 'socket.io-client';
-interface Bid {
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+interface Bid { // Interface for a bid object
   id: string | number;
   title: string;
   tenderName: string;
   submissionDate: string;
   status: "Pending" | "Under Review" | "Accepted" | "Rejected" | "Awarded";
   lastUpdated: string;
+}
+
+interface UpdatedBid { // Interface for real-time bid updates
+  bid_id?: string;
+  bid_status?: string;
+  [key: string]: any;
 }
 
 const MyBids: React.FC = () => {
@@ -17,15 +25,52 @@ const MyBids: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [connected, setConnected] = useState<boolean>(false);
+  const [bidEvents, setBidEvents] = useState<string[]>([]);
+
+  const formatStatus = (status: string): string => { // Normalizes bid status to ensure case-insensitive comparisons.
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "Pending";
+      case "under review":
+        return "Under Review";
+      case "approved":
+        return "Approved";
+      case "rejected":
+        return "Rejected";
+      case "awarded":
+        return "Awarded";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase(); 
+    }
+  };  
   
-  const bidCounts = {
-    Pending: filteredBids.filter((b) => b.status === "Pending").length,
-    "Under Review": filteredBids.filter((b) => b.status === "Under Review").length,
-    Accepted: filteredBids.filter((b) => b.status === "Accepted").length,
-    Rejected: filteredBids.filter((b) => b.status === "Rejected").length,
-    Awarded: filteredBids.filter((b) => b.status === "Awarded").length,
+  const bidCounts = { // Calculates bid statistics for the dashboard.
+    Pending: filteredBids.filter((b) => formatStatus(b.status) === "Pending").length,
+    "Under Review": filteredBids.filter((b) => formatStatus(b.status) === "Under Review").length,
+    Accepted: filteredBids.filter((b) => formatStatus(b.status) === "Accepted").length,
+    Rejected: filteredBids.filter((b) => formatStatus(b.status) === "Rejected").length,
+    Awarded: filteredBids.filter((b) => formatStatus(b.status) === "Awarded").length,
   };
   
+  const totalBids =
+    bidCounts.Pending +
+    bidCounts["Under Review"] +
+    bidCounts.Accepted +
+    bidCounts.Rejected +
+    bidCounts.Awarded;
+
+  const getPercentage = (count: number) =>
+    totalBids > 0 ? ((count / totalBids) * 100).toFixed(1) : "0";
+
+  const statusColors: Record<string, string> = {
+    Total: "bg-gray-200",
+    Pending: "bg-yellow-100",
+    "Under Review": "bg-blue-100",
+    Accepted: "bg-green-100",
+    Rejected: "bg-red-100",
+    Awarded: "bg-purple-100",
+  };
 
   // State for filter section visibility
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -63,14 +108,12 @@ const MyBids: React.FC = () => {
         throw new Error(`Error ${response.status}: Failed to fetch bids`);
       }
 
-      // The backend returns: { bids: [...], pagination: {...} }
       const data = await response.json();
       console.log("Raw response data:", data);
 
       const rawBids = data.bids || [];
 
-      // Convert raw DB columns to front-end fields
-      const mappedBids = rawBids.map((row: any) => ({
+      const mappedBids = rawBids.map((row: any) => ({ // Map database fields to frontend fields
         id: row.bid_id,
         title: row.bid_title,
         tenderName: row.tender_ref,
@@ -92,26 +135,61 @@ const MyBids: React.FC = () => {
     fetchBids();
   }, []);
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token") || "";
+
+    // Connect to socket
     const socket = io("http://localhost:3000", {
       transports: ["websocket"],
       query: { token },
     });
 
-    socket.on("bidInserted", (data) => {
-      fetchBids();
-      console.log("New bid inserted", data);
-    });
-    socket.on("bidUpdated", (data) => {
-      fetchBids();
-      console.log("New bid updated", data);
-    });
-    socket.on("bidDeleted", (data) => {
-      fetchBids();
-      console.log("Bid deleted", data);
+    // Handle connection status
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+      setConnected(true);
     });
 
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+      setConnected(false);
+    });
+
+    // Handle bid events
+    const handleBidInserted = (data: { bid: UpdatedBid }) => {
+      if (!data.bid) return;
+      console.log("bidInserted event:", data.bid);
+      toast.info(`New bid inserted: ${data.bid.bid_id}`);
+      setBidEvents((prev) => [`INSERT => ID: ${data.bid.bid_id}`, ...prev]);
+      fetchBids();
+    };
+
+    const handleBidUpdated = (data: { bid: UpdatedBid }) => {
+      if (!data.bid) return;
+      console.log("bidUpdated event:", data.bid);
+      toast.info(`Bid updated: ${data.bid.bid_id} => ${data.bid.bid_status}`);
+      setBidEvents((prev) => [
+        `UPDATE => ID: ${data.bid.bid_id}, status: ${data.bid.bid_status}`,
+        ...prev,
+      ]);
+      fetchBids();
+    };
+
+    const handleBidDeleted = (data: { bid: UpdatedBid }) => {
+      if (!data.bid) return;
+      console.log("bidDeleted event:", data.bid);
+      toast.error(`Bid deleted: ${data.bid.bid_id}`);
+      setBidEvents((prev) => [`DELETE => ID: ${data.bid.bid_id}`, ...prev]);
+      fetchBids();
+    };
+
+    socket.on("bidInserted", handleBidInserted);
+    socket.on("bidUpdated", handleBidUpdated);
+    socket.on("bidDeleted", handleBidDeleted);
+
     return () => {
+      socket.off("bidInserted", handleBidInserted);
+      socket.off("bidUpdated", handleBidUpdated);
+      socket.off("bidDeleted", handleBidDeleted);
       socket.disconnect();
     };
   }, []);
@@ -152,8 +230,6 @@ const MyBids: React.FC = () => {
     setShowFilters(false);
   };
 
-  
-
   // Sorting Function
   const sortBids = (bidsToSort: Bid[]) => {
     return [...bidsToSort].sort((a, b) => {
@@ -171,8 +247,27 @@ const MyBids: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* Dashboard */}
-      <BidDashboard bidCounts={bidCounts} />
+      <h1 className="text-3xl font-bold mb-4">My Bids</h1>
+      <div className="grid grid-cols-6 gap-4 mb-6">
+        {/* Total Section */}
+        <div className={`p-4 rounded-lg text-center shadow bg-gray-200`}>
+          <p className="text-lg font-semibold">Total</p>
+          <p className="text-3xl font-bold">{totalBids}</p>
+          <p className="text-sm text-gray-600">100%</p>
+        </div>
+
+        {/* Dynamic Status Sections */}
+        {Object.entries(bidCounts).map(([status, count]) => (
+          <div
+            key={status}
+            className={`p-4 rounded-lg text-center shadow ${statusColors[status]}`}
+          >
+            <p className="text-lg font-semibold">{status}</p>
+            <p className="text-3xl font-bold">{count}</p>
+            <p className="text-sm text-gray-600">{getPercentage(count)}%</p>
+          </div>
+        ))}
+      </div>
 
       {/* Search Bar */}
       <div className="mb-4">
@@ -299,39 +394,43 @@ const MyBids: React.FC = () => {
             <th className="border p-2">Submission Date</th>
             <th className="border p-2">Status</th>
             <th className="border p-2">Last Updated</th>
-            <th className="border p-2">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredBids.map((bid) => (
-            <tr key={bid.id} className="text-center">
-              <td className="border p-2">{bid.title}</td>
-              <td className="border p-2">{bid.tenderName}</td>
-              <td className="border p-2">{bid.submissionDate}</td>
-              <td className="border p-2">
-                <span
-                  className={`px-2 py-1 rounded-md text-white text-sm font-medium ${getStatusColor(
-                    bid.status
-                  )}`}
-                >
-                  {bid.status}
-                </span>
-              </td>
-              <td className="border p-2">{bid.lastUpdated}</td>
-              <td className="border p-2">
-                {["Pending", "Under Review"].includes(bid.status) && (
+          {filteredBids.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center p-4 text-gray-600 text-lg font-medium">
+                {allBids.length === 0 ? (
                   <>
-                    <button className="text-blue-600 hover:underline mr-5">
-                      Modify
-                    </button>
-                    <button className="text-red-600 hover:underline">
-                      Withdraw
-                    </button>
+                    You haven't submitted any bids yet.{" "}
+                    <span className="text-blue-500 cursor-pointer hover:underline">
+                      Start bidding now!
+                    </span>
                   </>
+                ) : (
+                  <>No matching bids found.</>
                 )}
               </td>
             </tr>
-          ))}
+          ) : (
+            filteredBids.map((bid) => (
+              <tr key={bid.id} className="text-center">
+                <td className="border p-2">{bid.title}</td>
+                <td className="border p-2">{bid.tenderName}</td>
+                <td className="border p-2">{bid.submissionDate}</td>
+                <td className="border p-2">
+                  <span
+                    className={`px-2 py-1 rounded-md text-white text-sm font-medium ${getStatusColor(
+                      bid.status.toLowerCase()
+                    )}`}
+                  >
+                    {formatStatus(bid.status)}
+                  </span>
+                </td>
+                <td className="border p-2">{bid.lastUpdated}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
@@ -339,16 +438,16 @@ const MyBids: React.FC = () => {
 };
 
 function getStatusColor(status: string) {
-  switch (status) {
-    case "Pending":
+  switch (status.toLowerCase()) {
+    case "pending":
       return "bg-yellow-500";
-    case "Under Review":
+    case "under review":
       return "bg-blue-500";
-    case "Accepted":
+    case "accepted":
       return "bg-green-500";
-    case "Rejected":
+    case "rejected":
       return "bg-red-500";
-    case "Awarded":
+    case "awarded":
       return "bg-purple-500";
     default:
       return "bg-gray-500";
