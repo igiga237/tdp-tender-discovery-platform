@@ -11,7 +11,6 @@ import {SearchTender} from "../features/tdp-lg/pages/TenderSearch"
 // "../features/tdp-lg/pages/TenderSearch";
 import TenderDetails from "../features/tdp-lg/components/SubmittedTenderDetails";
 import TenderDashboard from "../features/tdp-lg/pages/TenderDashboard";
-import BidStatusUpdates from '../features/tdp-lg/pages/BidStatusUpdates';
 import MyBids from "../features/tdp-lg/pages/MyBids";
 const AppRoutes = () => {
   return (
@@ -32,7 +31,6 @@ const AppRoutes = () => {
       <Route path="lg/search-tender" element={<SearchTender />} />
         <Route path="tender/:subId" element={<TenderDetails />} />
         <Route path="lg/my_tenders" element={<TenderDashboard />} />
-        <Route path="/bidupdates" element={<BidStatusUpdates />} />
         <Route path="lg/my_bids" element={<MyBids />} />
       <Route path="lg/ai-search-tender" element={<AiSearchTender />} />
 

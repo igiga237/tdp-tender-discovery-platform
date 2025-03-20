@@ -16,7 +16,8 @@ import { delay } from './middleware/delay.middleware';
 import { auth } from './middleware/auth.middleware';
 import dotenv from 'dotenv';
 import {initSupaBaseSubscription} from './utils/supabase_subscription';
-import { createSupabaseClient } from './utils/createSupabaseClient';
+import {searchSubTendersService} from './services/submittenderServices';
+import {getBidsForUser} from './services/bid.service';
 dotenv.config();
 
 // Initialize Supabase client
@@ -442,7 +443,6 @@ const userSocketMap: Record<string, string> = {};
 
 io.on('connection', async (socket) => {
   const token = socket.handshake.query.token as string | undefined;
-
   if (!token) {
     console.log('No token provided, disconnecting socket.');
     socket.disconnect();
@@ -458,13 +458,13 @@ io.on('connection', async (socket) => {
       return;
     }
     const userId = data.user.id;
-    console.log(`User ${userId} connected via socket ${socket.id}`);
-
+    const {subtenders} = await searchSubTendersService(token, userId, {});
+    const {bids} = await getBidsForUser(token, userId, {});
     // Map the user ID to the socket ID
     userSocketMap[userId] = socket.id;
 
     // Call the subscription function with the token object, socket.id, and userId
-    initSupaBaseSubscription({ token }, io, socket.id, userId);
+    initSupaBaseSubscription({ token }, io, socket.id, userId, subtenders,bids);
 
     socket.on('disconnect', () => {
       console.log(`User ${userId} disconnected from socket.`);

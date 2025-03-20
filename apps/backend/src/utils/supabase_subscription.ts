@@ -1,7 +1,7 @@
-import { supabase } from '../utils/supabaseClient';
 import { Server } from 'socket.io';
 import { createSupabaseClient } from './createSupabaseClient';
-
+import {TransformedSubTender} from '../services/submittenderServices';
+import {SubmittedBid} from '../services/bid.service';
 interface token {
   token: string;
 }
@@ -10,10 +10,12 @@ export function initSupaBaseSubscription(
   acces_token: token,
   io: Server,
   socketId: string,
-  userId: string
-) {
+  userId: string,
+  userTender: TransformedSubTender[],
+  userBids: SubmittedBid[]
+) {console.log(`User ${userId} connected via socket ${socketId}`);
   const supabase = createSupabaseClient(acces_token.token);
-
+  console.log(">>>>User Tender", userBids);
   // INSERT on submitted_bids
   supabase
     .channel('submitted_bids_insert')
@@ -59,11 +61,15 @@ export function initSupaBaseSubscription(
         event: 'DELETE',
         schema: 'public',
         table: 'submitted_bids',
-        filter: `user_id=eq.${userId}`
       },
       (payload) => {
         console.log('DELETE on submitted_bids:', payload.old);
-        io.to(socketId).emit('bidDeleted', { bid: payload.old });
+        const bidId = payload.old.bid_id;
+        const existsInUserTender = userBids.some(bid => bid.bid_id === bidId);
+        if (existsInUserTender) {
+          io.to(socketId).emit('bidDeleted', { bid: payload.old });
+        }
+        
       }
     )
     .subscribe();
@@ -106,19 +112,23 @@ export function initSupaBaseSubscription(
 
   // DELETE on submitted_tenders
   supabase
-    .channel('submitted_tenders_delete')
-    .on(
-      'postgres_changes',
-      {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'submitted_tenders',
-        filter: `user_id=eq.${userId}`
-      },
-      (payload) => {
-        console.log('DELETE on submitted_tenders:', payload.old);
-        io.to(socketId).emit('tenderDeleted', { tender: payload.old });
+  .channel('submitted_tenders_delete')
+  .on(
+    'postgres_changes',
+    {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'submitted_tenders',
+    },
+    (payload) => {
+      console.log('DELETE on submitted_tenders:', payload);
+      // Check if the payload's submission_id is in the userTender list
+      const tenderId = payload.old.submission_id;
+      const existsInUserTender = userTender.some(tender => tender.subId === tenderId);
+      if (existsInUserTender) {
+        io.to(socketId).emit('tenderDeleted', { tender: payload });
       }
-    )
-    .subscribe();
-}
+    }
+  )
+  .subscribe();
+  }

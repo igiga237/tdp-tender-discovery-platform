@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import io from 'socket.io-client';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import {getBidsAPI} from "../../../api/api";
 
 interface Bid { // Interface for a bid object
   id: string | number;
@@ -121,8 +122,6 @@ const MyBids: React.FC = () => {
         status: row.bid_status,
         lastUpdated: row.last_updated_date,
       }));
-
-      console.log("Mapped bids:", mappedBids); 
       setAllBids(mappedBids);
       setFilteredBids(mappedBids);
     } catch (err) {

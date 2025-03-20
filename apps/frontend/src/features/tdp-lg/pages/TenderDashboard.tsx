@@ -246,7 +246,7 @@ const TenderDashboard: React.FC = () => {
           }`}
           onClick={() => filterByStatus('Approved')}
         >
-          <p className="text-lg font-semibold">Accepted</p>
+          <p className="text-lg font-semibold">Approved</p>
           <p className="text-3xl font-bold text-green-600">{acceptedTenders}</p>
           <p className="text-sm text-gray-600">
             {getPercentage(acceptedTenders)}%
@@ -298,7 +298,7 @@ const TenderDashboard: React.FC = () => {
             >
               <option value="">All</option>
               <option value="Open">Open</option>
-              <option value="Approved">Accepted</option>
+              <option value="Approved">Approved</option>
               <option value="Submitted">Submitted</option>
               <option value="Rejected">Rejected</option>
             </select>

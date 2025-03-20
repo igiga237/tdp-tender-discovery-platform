@@ -43,7 +43,7 @@ interface SubTenderResult{
         totalPages: number;
     };
 }
-interface token{
+export interface token{
   token:string
 }
 // Submitted tender service
