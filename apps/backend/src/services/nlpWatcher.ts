@@ -1,17 +1,15 @@
-// src/services/nlpWatcher.ts
-
 import * as fs from 'fs';
 import * as path from 'path';
 import chokidar from 'chokidar';
 
-// Import your NLP modules using relative paths (make sure these paths are correct)
+// Import NLP modules using relative paths
 const KeywordExtraction = require('../NLP/KeywordExtraction.js');
 const NER = require('../NLP/NER.js');
 const SentimentAnalysis = require('../NLP/SentimentAnalysis.js');
 const TextExtraction = require('../NLP/TextExtraction.js');
 const Tokenizing = require('../NLP/tokenizing.js');
 
-// Define paths (adjust these if your folder structure is different)
+// Define paths
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads'); // tdp-tender-discovery-platform/uploads
 const NLP_RESULTS_DIR = path.join(process.cwd(), 'nlpResults'); // tdp-tender-discovery-platform/nlpResults
 
@@ -20,14 +18,13 @@ async function processFile(filePath: string): Promise<void> {
   const fileName = path.basename(filePath);
   const resultFolder = path.join(NLP_RESULTS_DIR, fileName);
 
-  // If the result folder exists, we assume the file has been processed
   if (fs.existsSync(resultFolder)) {
     console.log(`Skipping already processed file: ${fileName}`);
     return;
   }
 
-  // Create a folder for the NLP results for this file
-  fs.mkdirSync(resultFolder, { recursive: true });
+  // Folder for the NLP results for this file
+  fs.mkdirSync(NLPResults, { recursive: true });
   console.log(`Processing file: ${fileName}`);
 
   try {
