@@ -227,19 +227,17 @@ export const sendBidNotificationsAPI = async () => {
 
 export const loginWithGoogleAPI = async (googleToken: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/v1/auth/google-login`, { credential: googleToken, });  // changed from token to credential
-
-    return { 
-      success: true, 
-      data: response.data 
-    };
+    const endpoint = `${API_BASE_URL}/api/v1/auth/callback`;
+    console.log("Sending POST to:", endpoint, "with token:", googleToken);
+    const response = await axios.post(endpoint, { credential: googleToken });
+    console.log("Google login response:", response.data);
+    return response.data;
   } catch (error: any) {
-    return { 
-      success: false, 
-      message: error.response?.data?.message || 'Failed to login with Google' 
-    };
+    console.error("Google login error:", error);
+    throw new Error(error.response?.data?.message || 'Failed to login with Google');
   }
 };
+
 
 
 

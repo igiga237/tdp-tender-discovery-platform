@@ -41,7 +41,10 @@
   },
   "tags": [],
   "dependencies": {
+    "google-auth-library": "^9.15.1",
     "lucide-react": "^0.477.0",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   }
 }

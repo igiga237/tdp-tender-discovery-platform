@@ -8,6 +8,7 @@ const white_list = [
   '/api/v1/auth/forgotpassword',
   '/api/v1/auth/resetpassword',
   '/filterTendersWithAI',
+  '/api/v1/auth/callback',
   '/' 
 ];
 declare module "express" {
@@ -71,3 +72,4 @@ export const auth = async (req: Request, res: Response, next: NextFunction): Pro
     });
   }
 };
+

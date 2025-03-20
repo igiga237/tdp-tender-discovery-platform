@@ -3,9 +3,6 @@ import { User } from '@supabase/supabase-js'; // For type annotation of the retu
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
-import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret';
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '1h';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -212,39 +209,18 @@ export async function forgotPassword({ email }: ForgotPasswordInput): Promise<vo
 
 }
 
-export async function googleLogin({ credential }: { credential: string }) {
-  if (!credential) {
-    throw new Error('Google credential is required.');
-  }
-
+export async function googleLogin() {
   try {
-    // Authenticate with Supabase using Google ID token
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: credential,
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${process.env.FRONTEND_URL}/api/v1/auth/callback` },  // might wanna add v1 to the path
     });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    // Extract user data
-    const user = data.user;
-    if (!user) {
-      throw new Error('User authentication failed.');
-    }
-
-    return {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      user: {
-        id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.full_name || '',
-      },
-    };
-  } catch (err: any) {
-    throw new Error(`Google login failed: ${err.message}`);
+    if (error) throw new Error(error.message);
+    return data.url; // This URL is where the frontend should redirect the user
+  } catch (err) {
+    console.error("Google login error:", err);
+    throw err;
   }
 }
+
 

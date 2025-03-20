@@ -11,6 +11,7 @@ import tenderRouter from './routes/tenderRoutes'
 import { logger } from './middleware/logger.middleware'
 import { delay } from './middleware/delay.middleware';
 import { auth } from './middleware/auth.middleware';
+import { googleOAuthCallbackHandler } from './controllers/us-001/user_controller'
 
 //console.log('Logger:', logger);
 //console.log('Auth Router:', authRouter);
@@ -407,8 +408,8 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   }
 })
 
-
-app.use('/api/v1/auth', authRouter)
+app.post('/api/v1/auth/callback', googleOAuthCallbackHandler);
+app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/tenders', tenderRouter)
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))

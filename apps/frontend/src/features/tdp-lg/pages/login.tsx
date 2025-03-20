@@ -5,7 +5,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../components/AuthContext';
 import {loginAPI, loginWithGoogleAPI} from '../../../api/api';
-import googleLogo from '../../../assets/google-logo.png'
 
 // Extend the Window interface to include Google property
 declare global {
@@ -18,6 +17,8 @@ type LoginFormData = {
   email: string;
   password: string;
 };
+
+
 
 const Login: React.FC = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
@@ -32,55 +33,37 @@ const Login: React.FC = () => {
     script.async = true;
     script.onload = () => {
       console.log("Google OAuth script loaded");
-  
       window.google.accounts.id.initialize({
         client_id: "1089195553734-on2rri6kc80s9rloc6iddrfccapd48pg.apps.googleusercontent.com",
         callback: handleGoogleSignIn,
       });
-  
       window.google.accounts.id.renderButton(
         document.getElementById("googleSignInButton"),
         { theme: "outline", size: "large" }
       );
     };
     document.body.appendChild(script);
-  
     return () => {
       document.body.removeChild(script);
     };
   }, []);
-  
 
-  // google login handler
   const handleGoogleSignIn = async (response: any) => {
-    console.log("Google OAuth Response:", response);
-    
     try {
-      const res = await loginWithGoogleAPI(response.credential);
-      
-      if (res.success) {
-        console.log("Google login success:", res.data);
-        localStorage.setItem("access_token", res.data.access_token);
-        setAuth({
-          isAuthenticated: true,
-          user: {
-            email: res.data.user.email,
-            name: res.data.user.name,
-          },
-        });
-  
-        toast.success("Google login successful!");
-        setTimeout(() => navigate("/"), 1000);
-      } else {
-        throw new Error(res.message);
-      }
-    } catch (error: any) {
+      // response.credential is provided by the Google One Tap callback
+      const { access_token, user } = await loginWithGoogleAPI(response.credential);
+      localStorage.setItem("access_token", access_token);
+      setAuth({
+        isAuthenticated: true,
+        user: { email: user.email, name: user.name },
+      });
+      toast.success("Google login successful!");
+      setTimeout(() => navigate("/"), 1000);
+    } catch (error) {
       console.error("Google login error:", error);
       toast.error("Google login failed. Please try again.");
     }
   };
-  
-
   
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setLoading(true); // Start loading
