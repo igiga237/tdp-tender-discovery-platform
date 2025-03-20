@@ -10,8 +10,8 @@ const TextExtraction = require('../NLP/TextExtraction.js');
 const Tokenizing = require('../NLP/tokenizing.js');
 
 // Define paths
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads'); // e.g. tdp-tender-discovery-platform/uploads
-const NLP_RESULTS_DIR = path.join(process.cwd(), 'nlpResults'); // e.g. tdp-tender-discovery-platform/nlpResults
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads'); // tdp-tender-discovery-platform/uploads
+const NLP_RESULTS_DIR = path.join(process.cwd(), 'nlpResults'); // tdp-tender-discovery-platform/nlpResults
 
 // Utility: process a single file if it has not been processed
 async function processFile(filePath: string): Promise<void> {
@@ -91,8 +91,20 @@ function initNlpWatcher() {
   watcher.on('error', (error) => {
     console.error(`Watcher error: ${error}`);
   });
+
+  // Graceful shutdown logic
+  function cleanup() {
+    console.log('Closing file watcher...');
+    watcher.close().then(() => {
+      console.log('File watcher closed.');
+      process.exit(0); // Exit the process after cleanup
+    });
+  }
+
+  // Handle process termination signals
+  process.on('SIGINT', cleanup); // Ctrl+C
+  process.on('SIGTERM', cleanup); // Termination signal
 }
 
 // Start the watcher
 initNlpWatcher();
-
