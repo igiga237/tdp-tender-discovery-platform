@@ -408,14 +408,27 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
   }
 })
 
+console.log('authRouter =>', authRouter);
 
 app.use('/api/v1/auth', authRouter)
+
+console.log('tenderRouter =>', tenderRouter);
+
+
 app.use('/api/v1/tenders', tenderRouter)
+
 // Serve static files from the 'assets' folder
 app.use('/assets', express.static(path.join(__dirname, 'assets')))
 
+
+console.log('uploadRouter =>', uploadRouter);
+
+
 // Register the upload route
 app.use('/api/v1/documents', uploadRouter);
+
+console.log('nlpRouter =>', router);
+
 
 app.use('/api/v1/documents', router);
 

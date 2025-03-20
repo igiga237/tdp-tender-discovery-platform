@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import chokidar from 'chokidar';
 
-// Import NLP modules using relative paths
+// Import NLP modules using relative paths with consistent casing
 const KeywordExtraction = require('../NLP/KeywordExtraction.js');
 const NER = require('../NLP/NER.js');
 const SentimentAnalysis = require('../NLP/SentimentAnalysis.js');
@@ -10,43 +10,39 @@ const TextExtraction = require('../NLP/TextExtraction.js');
 const Tokenizing = require('../NLP/tokenizing.js');
 
 // Define paths
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads'); // tdp-tender-discovery-platform/uploads
-const NLP_RESULTS_DIR = path.join(process.cwd(), 'nlpResults'); // tdp-tender-discovery-platform/nlpResults
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads'); // e.g. tdp-tender-discovery-platform/uploads
+const NLP_RESULTS_DIR = path.join(process.cwd(), 'nlpResults'); // e.g. tdp-tender-discovery-platform/nlpResults
 
 // Utility: process a single file if it has not been processed
 async function processFile(filePath: string): Promise<void> {
   const fileName = path.basename(filePath);
   const resultFolder = path.join(NLP_RESULTS_DIR, fileName);
 
+  // If the result folder exists, assume the file has been processed.
   if (fs.existsSync(resultFolder)) {
     console.log(`Skipping already processed file: ${fileName}`);
     return;
   }
 
-  // Folder for the NLP results for this file
-  fs.mkdirSync(NLPResults, { recursive: true });
+  // Create a folder for the NLP results for this file.
+  fs.mkdirSync(resultFolder, { recursive: true });
   console.log(`Processing file: ${fileName}`);
 
   try {
     // 1. Text Extraction:
-    // Extract text and write output to extracted.txt in the result folder.
     const extractedOutputPath = path.join(resultFolder, 'extracted.txt');
     const extractedText: string = await TextExtraction.extractText(filePath, extractedOutputPath);
     console.log(`Text extracted for ${fileName}`);
 
     // 2. Tokenization:
-    // Tokenize the extracted text and write tokenized.txt in the result folder.
     const tokenizedSentences: string[] = Tokenizing.tokenizeText(extractedText);
     const tokenizedFilePath = path.join(resultFolder, 'tokenized.txt');
     fs.writeFileSync(tokenizedFilePath, tokenizedSentences.join('\n'), 'utf-8');
     console.log(`Tokenization completed for ${fileName}`);
 
     // 3. Sentiment Analysis:
-    // Run sentiment analysis using the tokenized file.
-    // Note: The SentimentAnalysis module writes SA.txt in its own directory.
-    // We call it, then move the output file to the result folder.
     SentimentAnalysis.sentimentAnalysisRunner(tokenizedFilePath);
-    const saOriginalPath = path.join(__dirname, '../../NLP/SA.txt'); // adjust if necessary
+    const saOriginalPath = path.join(__dirname, '../../NLP/SA.txt');
     const saTargetPath = path.join(resultFolder, 'SA.txt');
     if (fs.existsSync(saOriginalPath)) {
       fs.copyFileSync(saOriginalPath, saTargetPath);
@@ -57,9 +53,8 @@ async function processFile(filePath: string): Promise<void> {
     }
 
     // 4. Named Entity Recognition:
-    // Run NER using the tokenized file.
     NER.runNER(tokenizedFilePath);
-    const nerOriginalPath = path.join(__dirname, '../../NLP/NER.txt'); // adjust if necessary
+    const nerOriginalPath = path.join(__dirname, '../../NLP/NER.txt');
     const nerTargetPath = path.join(resultFolder, 'NER.txt');
     if (fs.existsSync(nerOriginalPath)) {
       fs.copyFileSync(nerOriginalPath, nerTargetPath);
@@ -85,7 +80,7 @@ function initNlpWatcher() {
   console.log(`Watching for new files in ${UPLOADS_DIR}...`);
   const watcher = chokidar.watch(UPLOADS_DIR, {
     persistent: true,
-    ignoreInitial: false, // also process files already present on startup
+    ignoreInitial: false, // Process files already present on startup as well
   });
 
   // On file add event, process the file

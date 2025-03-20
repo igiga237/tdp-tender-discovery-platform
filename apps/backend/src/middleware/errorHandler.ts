@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 
-function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+export default function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
   if (err instanceof multer.MulterError) {
     // Handle Multer-specific errors
     if (err.code === 'LIMIT_FILE_SIZE') {
