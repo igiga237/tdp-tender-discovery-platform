@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../utils/supabaseClient';
+import jwt from 'jsonwebtoken';
+
 
 // Define a whitelist of endpoints that do not require authentication.
 const white_list = [
@@ -49,21 +51,27 @@ export const auth = async (req: Request, res: Response, next: NextFunction): Pro
   }
 
   try {
-    // Verify token using Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      throw new Error(error?.message || 'Invalid user');
+    // Check if the token is in JWT format (it should have 3 parts when split by '.')
+    if (token.split('.').length === 3) {
+      // Attempt to verify with your custom JWT secret
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      req.user = {
+        email: (decoded as any).email,
+        name: (decoded as any).name,
+      };
+      return next();
+    } else {
+      // Otherwise, fall back to verifying with Supabase
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        throw new Error(error?.message || 'Invalid user');
+      }
+      req.user = {
+        name: user.user_metadata?.first_name || '',
+        email: user.email ?? '',
+      };
+      return next();
     }
-
-    // Attach user info to the request object
-    req.user = {
-      name: user.user_metadata?.first_name || '',
-      email: user.email ?? '',
-      // Add other user properties from Supabase response
-    };
-
-    return next();
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(401).json({
