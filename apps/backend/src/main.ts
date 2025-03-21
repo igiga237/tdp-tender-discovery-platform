@@ -18,6 +18,7 @@ import dotenv from 'dotenv';
 import {initSupaBaseSubscription} from './utils/supabase_subscription';
 import {searchSubTendersService} from './services/submittenderServices';
 import {getBidsForUser} from './services/bid.service';
+import { googleOAuthCallbackHandler } from './controllers/us-001/user_controller'
 dotenv.config();
 
 // Initialize Supabase client
@@ -424,7 +425,7 @@ app.get('/getOpenTenderNoticesFromDB', async (req, res) => {
 })
 
 
-
+app.post('/api/v1/auth/callback', googleOAuthCallbackHandler);
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/tenders', tenderRouter)
 app.use('/api/v1/bids', bidRouter)

@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../components/AuthContext';
-import {loginAPI} from '../../api/api';
+import {loginAPI, loginWithGoogleAPI } from '../../api/api';
+
+// Extend the Window interface to include Google property
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 type LoginFormData = {
   email: string;
@@ -16,6 +23,46 @@ const Login: React.FC = () => {
   const { setAuth } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(false); // Track login state
+
+   // ADDED
+   useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => {
+      console.log("Google OAuth script loaded");
+      window.google.accounts.id.initialize({
+        client_id: "1089195553734-on2rri6kc80s9rloc6iddrfccapd48pg.apps.googleusercontent.com",
+        callback: handleGoogleSignIn,
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById("googleSignInButton"),
+        { theme: "outline", size: "large" }
+      );
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+  const handleGoogleSignIn = async (response: any) => {
+    try {
+      // response.credential is provided by the Google One Tap callback
+      const { access_token, user } = await loginWithGoogleAPI(response.credential);
+      localStorage.setItem("access_token", access_token);
+      setAuth({
+        isAuthenticated: true,
+        user: { email: user.email, name: user.name },
+      });
+      toast.success("Google login successful!");
+      setTimeout(() => navigate("/"), 1000);
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast.error("Google login failed. Please try again.");
+    }
+  };
+
+
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setLoading(true); // Start loading
@@ -119,6 +166,16 @@ const Login: React.FC = () => {
             </Link>
           </p>
         </div>
+
+        {/*OR divider*/}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px', width: '100%' }}>
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #ccc', margin: '0 10px' }} />
+          <p style={{ margin: 0, whiteSpace: 'nowrap', color: '#888' }}>OR</p>
+          <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #ccc', margin: '0 10px' }} />
+        </div>
+        {/**Google Sign In Button */}
+        <br></br>
+        <div id="googleSignInButton"></div>
       </form>
       <ToastContainer />
     </div>

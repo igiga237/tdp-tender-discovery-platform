@@ -40,12 +40,15 @@ const sendEmail = async (
 };
 
 export async function getBidsHandler(req: Request, res: Response) {
-  const token = req.token
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')?.[1];
+  console.log('Token:', token);
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.userId; // Use the UUID
+    console.log("userId>>>>",userId)
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const sort_by = (req.query.sort_by as string) || 'last_updated_date';
@@ -53,7 +56,7 @@ export async function getBidsHandler(req: Request, res: Response) {
       bid_status: req.query.bid_status as string | undefined,
     };
 
-    const { bids, pagination } = await bidService.getBidsForUser(token,userId, {
+    const { bids, pagination } = await bidService.getBidsForUser(token, userId, {
       page,
       limit,
       sort_by,
@@ -68,14 +71,17 @@ export async function getBidsHandler(req: Request, res: Response) {
 }
 
 export async function getSingleBidHandler(req: Request, res: Response) {
-  const token = req.token;
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')?.[1];
+  console.log('Token:', token);
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.userId;
+    console.log("userId>>>>",userId)
     const { id } = req.params;
-    const bid = await bidService.getBidById(token,userId, id);
+    const bid = await bidService.getBidById(token, userId, id);
     if (!bid) {
       return res.status(404).json({ error: 'Bid not found' });
     }
@@ -87,7 +93,9 @@ export async function getSingleBidHandler(req: Request, res: Response) {
 }
 
 export async function updateBidStatusHandler(req: Request, res: Response) {
-  const token = req.token;
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')?.[1];
+  console.log('Token:', token);
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
