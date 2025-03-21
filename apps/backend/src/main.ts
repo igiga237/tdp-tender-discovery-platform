@@ -64,6 +64,9 @@ const app = express()
 app.use(cors({ origin: '*' })) // Allow all origins
 app.use(express.json({ limit: '10mb' })) // Limit is 1mb so can parse more tenders
 
+const documentRoutes = require("./routes/documents"); // import document API routes
+app.use("/api/v1/documents", documentRoutes); // register document API endpoints under "/api/v1/documents"
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   baseURL: process.env.GEMINI_BASE_URL,

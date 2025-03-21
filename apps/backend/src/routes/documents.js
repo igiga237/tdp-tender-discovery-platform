@@ -50,12 +50,32 @@ app.post("/api/v1/documents/extract", async (req, res) => {
     try {
         const fileData = fs.readFileSync(filePath); // read the file's data
         const pdfText = pdfParse(fileData); // use pdf parse to extact text
-        extractedData[fileId] = pdfText.text; // store the extracted text in temp storage
-        res.json({ message: "Text successfully extracted.", fileId });
+        const extractedText = pdfText.text; // store the extracted text in temp storage
+        
+        if (!extractedText) {
+            return res.status(400).json({ message: "Unable to analyze the document. Please check the file and try again."})
+        }
+
+        let confidenceScore = calculateConfidenceScore(extractedText); // calculate the confidence score
+        
+        extractedData[fileId] = {text: extractedText, confidence: confidenceScore};
+        
+        res.json({ message: "Text successfully extracted.", fileId, confidenceScore });
     } catch (err){
         res.status(500).json({ message: "Error extracting text.", error: err.message });
     }
 });
+
+// function that determines the clarity of the text and calculates the confidence score
+function calculateConfidenceScore(text){
+    const wordCount = text.split(/\s+/).length; // count the words without white spaces
+    const punctCount = text.match(/.,?!/g).length; // count the punctation
+
+    if (wordCount < 10) return 0.2; // very low confidence
+    if ((punctCount/wordCount) < 0.2) return 0.5; // low-medium confidence due to low punctuation ratio
+    if ((punctCount/wordCount) < 0.5) return 0.7; // medium-high confidence due to higher puncuation ratio
+    return 0.9; // very high confidence if the text is tructured and puncuated 
+}
 
 // retrieve extracted data ( GET /api/v1/documents/:id/data )
 app.get("/api/v1/documents/:id/data", (req, res) => {
