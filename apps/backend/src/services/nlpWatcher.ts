@@ -41,28 +41,32 @@ async function processFile(filePath: string): Promise<void> {
     console.log(`Tokenization completed for ${fileName}`);
 
     // 3. Sentiment Analysis:
-    SentimentAnalysis.sentimentAnalysisRunner(tokenizedFilePath);
-    const saOriginalPath = path.join(__dirname, '../../NLP/SA.txt');
-    const saTargetPath = path.join(resultFolder, 'SA.txt');
-    if (fs.existsSync(saOriginalPath)) {
-      fs.copyFileSync(saOriginalPath, saTargetPath);
-      fs.unlinkSync(saOriginalPath);
-      console.log(`Sentiment analysis completed for ${fileName}`);
-    } else {
-      console.warn(`Sentiment analysis output not found for ${fileName}`);
-    }
+    const saTargetPath = path.join(resultFolder, 'SA.txt'); // Target output path for Sentiment Analysis
+    SentimentAnalysis.sentimentAnalysisRunner(tokenizedFilePath, saTargetPath); // Pass target path directly
+    console.log(`Sentiment analysis completed for ${fileName}`);
+    // const saOriginalPath = path.join(__dirname, '../../NLP/SA.txt');
+    // const saTargetPath = path.join(resultFolder, 'SA.txt');
+    // if (fs.existsSync(saOriginalPath)) {
+    //   fs.copyFileSync(saOriginalPath, saTargetPath);
+    //   fs.unlinkSync(saOriginalPath);
+    //   console.log(`Sentiment analysis completed for ${fileName}`);
+    // } else {
+    //   console.warn(`Sentiment analysis output not found for ${fileName}`);
+    // }
 
     // 4. Named Entity Recognition:
-    NER.runNER(tokenizedFilePath);
-    const nerOriginalPath = path.join(__dirname, '../../NLP/NER.txt');
-    const nerTargetPath = path.join(resultFolder, 'NER.txt');
-    if (fs.existsSync(nerOriginalPath)) {
-      fs.copyFileSync(nerOriginalPath, nerTargetPath);
-      fs.unlinkSync(nerOriginalPath);
-      console.log(`Named Entity Recognition completed for ${fileName}`);
-    } else {
-      console.warn(`NER output not found for ${fileName}`);
-    }
+    const nerTargetPath = path.join(resultFolder, 'NER.txt'); // Target output path for NER
+    NER.runNER(tokenizedFilePath, nerTargetPath); // Pass target output path directly
+    console.log(`Named Entity Recognition completed for ${fileName}`);
+    // const nerOriginalPath = path.join(__dirname, '../../NLP/NER.txt');
+    // const nerTargetPath = path.join(resultFolder, 'NER.txt');
+    // if (fs.existsSync(nerOriginalPath)) {
+    //   fs.copyFileSync(nerOriginalPath, nerTargetPath);
+    //   fs.unlinkSync(nerOriginalPath);
+    //   console.log(`Named Entity Recognition completed for ${fileName}`);
+    // } else {
+    //   console.warn(`NER output not found for ${fileName}`);
+    // }
 
     console.log(`Finished processing ${fileName}`);
   } catch (error) {
@@ -108,3 +112,4 @@ function initNlpWatcher() {
 
 // Start the watcher
 initNlpWatcher();
+

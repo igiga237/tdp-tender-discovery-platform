@@ -27,16 +27,18 @@ function extractNamedEntities(sentences) {
     return entities;
 }
 
-function runNER(inputFile) {
+function runNER(inputFile, outputFile) {
     const sentences = loadSentences(inputFile);
     const entities = extractNamedEntities(sentences);
     const formatted = entities.map(e => `${e.entity} (${e.label}): ${e.sent}`).join('\n');
 
 
-    const outputFileName = `NER.txt`;
-    const outputFilePath = path.join(__dirname, outputFileName);
+    //const outputFileName = `NER.txt`;
+    //const outputFilePath = path.join(__dirname, outputFileName);
+    const outputFilePath = outputFile || path.join(__dirname, 'NER.txt');
 
     fs.writeFileSync(outputFilePath, formatted);
+    console.log(`NER output saved to: ${outputFilePath}`);
 }
 
 

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { promisify } from 'util';
 
-// Import your NLP modules using require (now using consistent casing for "NLP")
+// Import your NLP modules using require (using consistent casing for "NLP")
 const textExtraction = require('../../NLP/TextExtraction.js');
 const tokenizing = require('../../NLP/tokenizing.js');
 const NER = require('../../NLP/NER.js');
@@ -45,22 +45,22 @@ export const extractDocumentData = async (req: Request, res: Response, next: Nex
 
     // 3. Named Entity Recognition (NER):
     const nerInputPath = tokenizedOutputPath;
-    NER.runNER(nerInputPath);
-    const nerOutputOriginalPath = path.join(__dirname, '../../NLP/NER.txt');
-    const nerOutputPath = path.join(docResultDir, 'NER.txt');
-    if (fs.existsSync(nerOutputOriginalPath)) {
-      fs.copyFileSync(nerOutputOriginalPath, nerOutputPath);
-      fs.unlinkSync(nerOutputOriginalPath);
-    }
+    const nerOutputPath = path.join(docResultDir, 'NER.txt'); // Target output path for NER
+    NER.runNER(nerInputPath, nerOutputPath); // Pass output path to runNER
+    // const nerOutputOriginalPath = path.join(__dirname, '../../NLP/NER.txt');
+    // if (fs.existsSync(nerOutputOriginalPath)) {
+    //   fs.copyFileSync(nerOutputOriginalPath, nerOutputPath);
+    //   fs.unlinkSync(nerOutputOriginalPath);
+    // }
 
     // 4. Sentiment Analysis:
-    sentimentAnalysis.sentimentAnalysisRunner(nerInputPath);
-    const saOutputOriginalPath = path.join(__dirname, '../../NLP/SA.txt');
-    const saOutputPath = path.join(docResultDir, 'SA.txt');
-    if (fs.existsSync(saOutputOriginalPath)) {
-      fs.copyFileSync(saOutputOriginalPath, saOutputPath);
-      fs.unlinkSync(saOutputOriginalPath);
-    }
+    const saOutputPath = path.join(docResultDir, 'SA.txt'); // Target output path for sentiment analysis
+    sentimentAnalysis.sentimentAnalysisRunner(nerInputPath, saOutputPath); // Pass output path to sentimentAnalysisRunner
+    // const saOutputOriginalPath = path.join(__dirname, '../../NLP/SA.txt');
+    // if (fs.existsSync(saOutputOriginalPath)) {
+    //   fs.copyFileSync(saOutputOriginalPath, saOutputPath);
+    //   fs.unlinkSync(saOutputOriginalPath);
+    // }
 
     return res.status(200).json({
       success: true,

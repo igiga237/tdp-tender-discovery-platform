@@ -16,15 +16,18 @@ function analyzeSentiment(sentences) {
     });
 }
 
-function sentimentAnalysisRunner(inputFile) {
+function sentimentAnalysisRunner(inputFile, outputFile) {
     const sentences = loadSentences(inputFile);
     const results = analyzeSentiment(sentences);
     const output = results.map(r => `[${r.sentiment} | ${r.score}] ${r.sent}`).join('\n');
 
-    const outputFileName = `SA.txt`;
-    const outputFilePath = path.join(__dirname, outputFileName);
+    //const outputFileName = `SA.txt`;
+    //const outputFilePath = path.join(__dirname, outputFileName);
+
+    const outputFilePath = outputFile || path.join(__dirname, 'SA.txt');
     
     fs.writeFileSync(outputFilePath, output);
+    console.log(`Sentiment analysis output saved to: ${outputFilePath}`);
 }
 
 
