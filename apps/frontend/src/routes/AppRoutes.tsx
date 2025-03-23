@@ -11,6 +11,7 @@ import Login from "../auth/pages/login";
 import SignUp from "../auth/pages/SignUp";
 import {SearchTender} from "../features/tdp-lg/pages/TenderSearch";
 
+
   
 const AppRoutes = () => {
   return (
@@ -34,6 +35,7 @@ const AppRoutes = () => {
       {/* Other Feature Routes */}
       <Route path="ca" element={<CaMain />} />
       <Route path="ca/UploadDoc" element={<UploadDoc />} />
+      
       <Route path="bm" element={<BmMain />} />
     </Route>
   </Routes>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from './/../../../utils/axios.customize'  // changed from 'axios' to use the customized instance
 
 interface ProgressState {
@@ -13,6 +13,7 @@ interface UseFileUploadReturn {
   msg: string | null
   handleUpload: () => void
   uploadedFiles: Set<string>
+  nlpResults: any
 }
 
 export function useFileUpload(): UseFileUploadReturn {
@@ -20,6 +21,7 @@ export function useFileUpload(): UseFileUploadReturn {
   const [progress, setProgress] = useState<ProgressState>({ started: false, pc: 0 })
   const [msg, setMsg] = useState<string | null>(null)
   const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set())
+  const [nlpResults, setNlpResults] = useState<any>(null)
 
   const handleUpload = (): void => {
     if (!files) {
@@ -73,10 +75,35 @@ export function useFileUpload(): UseFileUploadReturn {
           setUploadedFiles((prev) => {
             const newSet = new Set(prev)
             Array.from(files).forEach((f) => newSet.add(f.name))
+            
             return newSet
           })
+
+          
+       const documentId = res.data.files[0].documentId; 
+      
+       axios
+       .get(`http://localhost:3000/api/v1/documents/${documentId}/data`)
+       
+       .then((nlpRes) => {
+        console.log(nlpRes)
+         if (nlpRes.data.success) {
+           setNlpResults(nlpRes.data);  // Assuming response contains 'results'
+     
+           // Log the NLP results to the console
+           console.log('NLP Results:', nlpRes.data); 
+         } else {
+           setMsg('Failed to retrieve NLP results');
+         }
+       })
+       .catch((nlpErr) => {
+         console.error(nlpErr);
+         setMsg('Failed to fetch NLP results');
+       })
+     
+            
         } else {
-          setMsg('Text extraction failed. Please try again.')
+          setMsg('Text extraction failed. Please try again.');
         }
       })
       .catch((err) => {
@@ -92,6 +119,7 @@ export function useFileUpload(): UseFileUploadReturn {
     msg,
     handleUpload,
     uploadedFiles,
+    nlpResults, 
   }
 }
 
